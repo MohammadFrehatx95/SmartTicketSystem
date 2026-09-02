@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/TicketService/">
+    <Project Path="TicketService.Api/TicketService.Api.csproj" />
+    <Project Path="TicketService.Application/TicketService.Application.csproj" />
+    <Project Path="TicketService.Domain/TicketService.Domain.csproj" />
+    <Project Path="TicketService.Infrastructure/TicketService.Infrastructure.csproj" />
+  </Folder>
+</Solution>
