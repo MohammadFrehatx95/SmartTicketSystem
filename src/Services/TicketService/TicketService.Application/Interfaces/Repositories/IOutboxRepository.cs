@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using TicketService.Domain.Entities;
 
-namespace TicketService.Application.Interfaces
+namespace TicketService.Application.Interfaces.Repositories
 {
     public interface IOutboxRepository
     {

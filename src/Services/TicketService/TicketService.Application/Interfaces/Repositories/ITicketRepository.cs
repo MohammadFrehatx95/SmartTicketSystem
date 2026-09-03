@@ -1,6 +1,6 @@
 ﻿using TicketService.Domain.Entities;
 
-namespace TicketService.Application.Interfaces
+namespace TicketService.Application.Interfaces.Repositories
 {
     public interface ITicketRepository
     {
