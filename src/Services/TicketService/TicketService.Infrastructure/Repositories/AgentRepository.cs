@@ -28,5 +28,10 @@ namespace TicketService.Infrastructure.Repositories
                                            .ThenBy(a => a.LastAssignedAt)
                                            .FirstOrDefaultAsync();
         }
+
+        public async Task AddAsync(Agent agent)
+        {
+            await _dbContext.Agents.AddAsync(agent);
+        }
     }
 }
