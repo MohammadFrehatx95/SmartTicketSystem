@@ -26,9 +26,12 @@ namespace TicketService.Api.Controllers
         }
 
         [HttpPut("{ticketId}/assign")]
-        public async Task<IActionResult> Assign(long ticketId, AssignTicketRequest request , CancellationToken cancellationToken)
+        public async Task<IActionResult> Assign(long ticketId, AssignTicketRequest request , [FromHeader(Name = "Idempotency-Key")] string idempotencyKey, CancellationToken cancellationToken)
         {
-            var result = await _assignTicketService.AssignAsync(ticketId, request, cancellationToken);
+            if (string.IsNullOrEmpty(idempotencyKey))
+                return BadRequest("Idempotency-Key Header is required.");
+
+            var result = await _assignTicketService.AssignAsync(ticketId, request, idempotencyKey , cancellationToken);
 
             return Ok(result);
         }

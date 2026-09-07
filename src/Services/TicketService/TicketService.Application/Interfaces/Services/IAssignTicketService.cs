@@ -4,6 +4,6 @@ namespace TicketService.Application.Interfaces.Services
 {
     public interface IAssignTicketService
     {
-        Task<AssignTicketResponse> AssignAsync(long ticketId, AssignTicketRequest request, CancellationToken cancellationToken = default);
+        Task<AssignTicketResponse> AssignAsync(long ticketId, AssignTicketRequest request, string IdempotencyKey ,CancellationToken cancellationToken = default);
     }
 }

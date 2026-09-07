@@ -1,6 +1,6 @@
-﻿using System.IO.Compression;
+﻿using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
-using System.Text.Json.Nodes;
 using TicketService.Application.DTOs.Ticket;
 using TicketService.Application.Interfaces.Persistence;
 using TicketService.Application.Interfaces.Repositories;
@@ -17,18 +17,40 @@ namespace TicketService.Application.Services
         private readonly IAssignmentAttemptRepository _attemptRepository;
         private readonly IOutboxRepository _outboxRepository;
         private readonly IUnitOfWork _unitOfWork;
+        private readonly IIdempotencyRepository _idempotencyRepository;
 
-        public AssignTicketService(ITicketRepository ticketRepository, IAgentRepository agentRepository, IAssignmentAttemptRepository attemptRepository, IOutboxRepository outboxRepository, IUnitOfWork unitOfWork) 
+        public AssignTicketService(ITicketRepository ticketRepository, IAgentRepository agentRepository, IAssignmentAttemptRepository attemptRepository, IOutboxRepository outboxRepository, IUnitOfWork unitOfWork, IIdempotencyRepository idempotencyRepository) 
         {
             _ticketRepository = ticketRepository;
             _agentRepository = agentRepository;
             _attemptRepository = attemptRepository;
             _outboxRepository = outboxRepository;
             _unitOfWork = unitOfWork;
+            _idempotencyRepository = idempotencyRepository;
         }
 
-        public async Task<AssignTicketResponse> AssignAsync(long ticketId, AssignTicketRequest request, CancellationToken cancellationToken = default)
+        public async Task<AssignTicketResponse> AssignAsync(long ticketId, AssignTicketRequest request, string idempotencyKey, CancellationToken cancellationToken = default)
         {
+
+            var requestData = $"{ticketId}:{request.AgentId}";
+
+            var requestHash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(requestData)));
+
+            var existingRecord = await _idempotencyRepository.GetByKeyAsync(idempotencyKey);
+
+            if (existingRecord is not null)
+            {
+                if (existingRecord.RequestHash != requestHash)
+                    throw new Exception("Idempotency-Key was already used with a different request.");
+
+                var cachedResponse = JsonSerializer.Deserialize<AssignTicketResponse>(existingRecord.ResponseBody);
+
+                if (cachedResponse is null)
+                    throw new Exception("Invalid cache response.");
+
+                return cachedResponse;
+            }
+
             var ticket = await _ticketRepository.GetByIdAsync(ticketId);
 
             if (ticket is null)
@@ -67,7 +89,7 @@ namespace TicketService.Application.Services
                 CompletedAt = DateTime.UtcNow,
             };
 
-           await _attemptRepository.AddAsync(attempt);
+            await _attemptRepository.AddAsync(attempt);
 
 
             var eventPayLoad = JsonSerializer.Serialize(new
@@ -87,21 +109,31 @@ namespace TicketService.Application.Services
             };
 
             await _outboxRepository.AddAsync(outboxMessage);
-            await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-            return new AssignTicketResponse
+            var response = new AssignTicketResponse
             {
                 TicketId = ticket.Id,
                 AssignedAgentId = agent.Id,
                 Status = ticket.Status,
                 AssignmentSource = ticket.AssignmentSource.Value,
-                AssignedAt = ticket.AssignedAt.Value 
+                AssignedAt = ticket.AssignedAt.Value
             };
+
+            var idempotencyRecord = new IdempotencyRecord
+            {
+                IdempotencyKey = idempotencyKey,
+                RequestHash = requestHash,
+                ResponseBody = JsonSerializer.Serialize(response),
+                StatusCode = 200,
+                CreatedAt = DateTime.UtcNow,
+                ExpiresAt = DateTime.UtcNow.AddHours(24),
+            };
+
+            await _idempotencyRepository.AddAsync(idempotencyRecord);
+
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+            return response;
         }
-
-
-
-
-
     }
 }

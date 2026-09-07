@@ -20,6 +20,8 @@ public static class InfrastructureExtension
 
         services.AddScoped<IOutboxRepository, OutboxRepository>();
 
+        services.AddScoped<IIdempotencyRepository, IdempotencyRepository>();
+
         return services;
     }
 }
