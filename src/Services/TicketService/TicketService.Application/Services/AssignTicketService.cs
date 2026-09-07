@@ -51,6 +51,10 @@ namespace TicketService.Application.Services
                 return cachedResponse;
             }
 
+            await _unitOfWork.BeginTransactionAsync(cancellationToken);
+
+            try { 
+
             var ticket = await _ticketRepository.GetByIdAsync(ticketId);
 
             if (ticket is null)
@@ -134,6 +138,14 @@ namespace TicketService.Application.Services
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
             return response;
+
+            }
+
+            catch
+            {
+                await _unitOfWork.RollbackTransactionAsync(CancellationToken.None);
+                throw;
+            }
         }
     }
 }
