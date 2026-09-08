@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using TicketService.Application.DTOs.Ticket;
+using TicketService.Application.Exceptions;
 using TicketService.Application.Interfaces.Services;
 
 namespace TicketService.Api.Controllers
@@ -31,11 +32,21 @@ namespace TicketService.Api.Controllers
             if (string.IsNullOrEmpty(idempotencyKey))
                 return BadRequest("Idempotency-Key Header is required.");
 
-            var result = await _assignTicketService.AssignAsync(ticketId, request, idempotencyKey , cancellationToken);
+            try
+            {
 
-            return Ok(result);
+                var result = await _assignTicketService.AssignAsync(ticketId, request, idempotencyKey, cancellationToken);
+
+                return Ok(result);
+
+            }
+            catch (TicketAssignmentConflictException ex)
+            {
+                return Conflict(new
+                {
+                    message = ex.Message
+                });
+            }
         }
-
-       
     }
 }

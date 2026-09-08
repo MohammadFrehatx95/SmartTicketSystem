@@ -6,7 +6,6 @@ namespace TicketService.Application.Interfaces.Repositories
     {
         Task<Agent?> GetByIdAsync(long agentId);
         Task<Agent?> GetBestAvailableAgentAsync(string ticketCategory);
-
         Task AddAsync(Agent agent);
     }
 }
