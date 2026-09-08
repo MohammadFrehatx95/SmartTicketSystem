@@ -33,5 +33,16 @@ namespace TicketService.Infrastructure.Repositories
         {
             await _dbContext.Agents.AddAsync(agent);
         }
+
+        public async Task<int> TryIncreamentWorkloadAsync(long agentId, DateTime assignedAt, CancellationToken cancellationToken = default)
+        {
+            return await _dbContext.Agents.Where(a => a.Id == agentId && a.IsActive && a.IsAvailable && a.CurrentOpenTickets < a.MaxOpenTickets)
+                                          .ExecuteUpdateAsync(setters => setters
+                                              .SetProperty(
+                                                a => a.CurrentOpenTickets, a => a.CurrentOpenTickets + 1)
+                                              .SetProperty(
+                                                a => a.LastAssignedAt,assignedAt),
+                                          cancellationToken);
+        }
     }
 }

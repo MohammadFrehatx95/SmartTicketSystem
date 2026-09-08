@@ -62,12 +62,6 @@ namespace TicketService.Application.Services
                 if (agent is null)
                     throw new Exception("Agent not found.");
 
-                if (!agent.IsActive || !agent.IsAvailable)
-                    throw new Exception("Agent is not available.");
-
-                if (agent.CurrentOpenTickets >= agent.MaxOpenTickets)
-                    throw new Exception("Agent reached maximum workload.");
-
                 var affectedRows = await _ticketRepository.TryAssignAsync(ticketId, agent.Id, AssignmentSource.Manual, cancellationToken);
 
                 if (affectedRows == 0)
@@ -78,8 +72,12 @@ namespace TicketService.Application.Services
                 if(ticket is null)
                     throw new Exception("Ticket not found after assignment");
 
-                agent.CurrentOpenTickets++;
-                agent.LastAssignedAt = DateTime.UtcNow;
+                var workloadAffectedRows = await _agentRepository.TryIncreamentWorkloadAsync(agent.Id, ticket.AssignedAt!.Value, cancellationToken);
+
+                if(workloadAffectedRows == 0)
+                {
+                    throw new TicketAssignmentConflictException("Agent reached maximum workload or is no longer available.");
+                }
 
                 var attempt = new AssignmentAttempt
                 {
