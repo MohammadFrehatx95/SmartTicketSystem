@@ -11,11 +11,13 @@ namespace TicketService.Api.Controllers
     {
         private readonly ICreateTicketService _createTicketService;
         private readonly IAssignTicketService  _assignTicketService;
+        private readonly IAutoAssignTicketService _autoAssignTicketService;
 
-        public TicketsController(ICreateTicketService createTicketService, IAssignTicketService assignTicketService)
+        public TicketsController(ICreateTicketService createTicketService, IAssignTicketService assignTicketService, IAutoAssignTicketService autoAssignTicketService)
         {
             _createTicketService = createTicketService;
             _assignTicketService = assignTicketService;
+            _autoAssignTicketService = autoAssignTicketService;
         }
 
         [HttpPost]
@@ -48,5 +50,24 @@ namespace TicketService.Api.Controllers
                 });
             }
         }
+
+        [HttpPost("{ticketId}/auto-assign")]
+        public async Task<IActionResult> AutoAssign(long ticketId, CancellationToken cancellationToken)
+        {
+            try
+            {
+                var result = await _autoAssignTicketService.AutoAssignAsync(ticketId, cancellationToken);
+
+                return Ok(result);
+            }
+            catch(TicketAssignmentConflictException ex) 
+            {
+                return Conflict(new
+                {
+                    message = ex.Message
+                });
+            }
+        }
+
     }
 }

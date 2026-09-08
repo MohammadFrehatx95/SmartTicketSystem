@@ -14,6 +14,8 @@ public static class ApplicationExtension
 
         services.AddScoped<ICreateAgentService, CreateAgentService>();
 
+        services.AddScoped<IAutoAssignTicketService, AutoAssignTicketService>();
+
         return services;
     }
 }

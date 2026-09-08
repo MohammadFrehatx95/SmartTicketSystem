@@ -20,12 +20,17 @@ namespace TicketService.Infrastructure.Repositories
             await _dbContext.Tickets.AddAsync(ticket);
         }
 
+        public async Task<Ticket?> GetByIdAsNoTrackingAsync(long ticketId)
+        {
+            return await _dbContext.Tickets.AsNoTracking().FirstOrDefaultAsync(t => t.Id == ticketId);
+        }
+
         public async Task<Ticket?> GetByIdAsync(long ticketId)
         {
             return await _dbContext.Tickets.FirstOrDefaultAsync(x => x.Id == ticketId);
         }
 
-        public async Task<int> TryAssignAsync(long ticketId, long agentId, AssignmentSource source, CancellationToken cancellationToken = default)
+        public async Task<int> TryAssignAsync(long ticketId, long agentId, AssignmentSource source, string assignmentReason ,CancellationToken cancellationToken = default)
         {
             var assignedAt = DateTime.UtcNow;
 
@@ -35,7 +40,7 @@ namespace TicketService.Infrastructure.Repositories
                                                .SetProperty(t => t.Status, TicketStatus.Assigned)
                                                .SetProperty(t => t.AssignedAt, assignedAt)
                                                .SetProperty(t => t.AssignmentSource, source)
-                                               .SetProperty(t => t.AssignmentReason, "Manual Assignment")
+                                               .SetProperty(t => t.AssignmentReason, assignmentReason)
                                                .SetProperty(
                                                    t => t.AssignmentVersion, t => t.AssignmentVersion + 1
                                                ),

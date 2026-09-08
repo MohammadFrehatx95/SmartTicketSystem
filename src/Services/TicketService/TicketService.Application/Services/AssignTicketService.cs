@@ -62,7 +62,7 @@ namespace TicketService.Application.Services
                 if (agent is null)
                     throw new Exception("Agent not found.");
 
-                var affectedRows = await _ticketRepository.TryAssignAsync(ticketId, agent.Id, AssignmentSource.Manual, cancellationToken);
+                var affectedRows = await _ticketRepository.TryAssignAsync(ticketId, agent.Id, AssignmentSource.Manual,"Manual Assignment",cancellationToken);
 
                 if (affectedRows == 0)
                     throw new TicketAssignmentConflictException("Ticket was already assigned or cannot be assigned");
