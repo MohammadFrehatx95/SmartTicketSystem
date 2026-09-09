@@ -8,7 +8,7 @@ builder.Services.AddApiServices();
 
 builder.Services.ConnectDataBase(builder.Configuration);
 
-builder.Services.AddInfrastructureServices();
+builder.Services.AddInfrastructureServices(builder.Configuration);
 
 builder.Services.AddApplicationServices();
 

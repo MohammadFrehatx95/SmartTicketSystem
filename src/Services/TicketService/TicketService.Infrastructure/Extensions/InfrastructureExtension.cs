@@ -1,7 +1,9 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using TicketService.Application.Interfaces.Persistence;
 using TicketService.Application.Interfaces.Repositories;
 using TicketService.Infrastructure.Data;
+using TicketService.Infrastructure.Options;
 using TicketService.Infrastructure.Repositories;
 using TicketService.Infrastructure.Workers;
 
@@ -9,7 +11,7 @@ namespace TicketService.Infrastructure.Extensions;
 
 public static class InfrastructureExtension
 {
-    public static IServiceCollection AddInfrastructureServices(this IServiceCollection services)
+    public static IServiceCollection AddInfrastructureServices(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddScoped<ITicketRepository, TicketRepository>();
 
@@ -24,6 +26,8 @@ public static class InfrastructureExtension
         services.AddScoped<IIdempotencyRepository, IdempotencyRepository>();
 
         services.AddHostedService<RetryAssignmentWorker>();
+
+        services.Configure<RetryWorkerOption>(configuration.GetSection("RetryWorker"));
 
         return services;
     }
