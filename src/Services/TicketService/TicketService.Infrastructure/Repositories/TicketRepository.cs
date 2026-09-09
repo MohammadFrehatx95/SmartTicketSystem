@@ -30,6 +30,15 @@ namespace TicketService.Infrastructure.Repositories
             return await _dbContext.Tickets.FirstOrDefaultAsync(x => x.Id == ticketId);
         }
 
+        public async Task<List<Ticket>> GetNewUnassignedTicketsAsync(CancellationToken cancellationToken = default)
+        {
+           return await _dbContext.Tickets.AsNoTracking().Where(t => t.Status == TicketStatus.New &&
+                                                                     t.AssignedAgentId == null)
+                                                         .OrderByDescending(t => t.Priority)
+                                                         .ThenBy(t => t.CreatedAt)
+                                                         .ToListAsync(cancellationToken);
+        }
+
         public async Task<int> TryAssignAsync(long ticketId, long agentId, AssignmentSource source, string assignmentReason ,CancellationToken cancellationToken = default)
         {
             var assignedAt = DateTime.UtcNow;

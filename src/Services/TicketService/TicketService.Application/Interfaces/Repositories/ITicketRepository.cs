@@ -9,5 +9,6 @@ namespace TicketService.Application.Interfaces.Repositories
         Task AddAsync(Ticket ticket);
         Task<int> TryAssignAsync(long ticketId, long agentId, AssignmentSource source, string assignmentReason ,CancellationToken cancellationToken = default);
         Task<Ticket?> GetByIdAsNoTrackingAsync(long ticketId);
+        Task<List<Ticket>> GetNewUnassignedTicketsAsync(CancellationToken cancellationToken = default);
     }
 }
