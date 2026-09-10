@@ -19,6 +19,11 @@ namespace TicketService.Infrastructure.Data
             _transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
         }
 
+        public void ClearTracking()
+        {
+           _dbContext.ChangeTracker.Clear();
+        }
+
         public async Task CommitTransactionAsync(CancellationToken cancellationToken = default)
         {
             if (_transaction is null)

@@ -43,10 +43,9 @@ namespace TicketService.Infrastructure.Workers
                 {
                     try
                     {
-                        _logger.LogInformation("Retry assignment started for Ticket {TicketId}",
-                            ticket.Id);
+                        _logger.LogInformation("Retry assignment started for Ticket {TicketId}",ticket.Id);
 
-                        await autoAssignService.RetryAssignAsync( ticket.Id, stoppingToken);
+                        await autoAssignService.RetryAssignAsync(ticket.Id, stoppingToken);
 
                         _logger.LogInformation("Retry assignment succeeded for Ticket {TicketId}", ticket.Id);
                     }

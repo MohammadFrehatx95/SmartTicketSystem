@@ -17,7 +17,7 @@ public class AutoAssignTicketService : IAutoAssignTicketService
     private readonly IOutboxRepository _outboxRepository;
     private readonly IUnitOfWork _unitOfWork;
 
-    public AutoAssignTicketService(ITicketRepository ticketRepository,IAgentRepository agentRepository,IAssignmentAttemptRepository attemptRepository,IOutboxRepository outboxRepository, IUnitOfWork unitOfWork)
+    public AutoAssignTicketService(ITicketRepository ticketRepository, IAgentRepository agentRepository, IAssignmentAttemptRepository attemptRepository, IOutboxRepository outboxRepository, IUnitOfWork unitOfWork)
     {
         _ticketRepository = ticketRepository;
         _agentRepository = agentRepository;
@@ -45,9 +45,9 @@ public class AutoAssignTicketService : IAutoAssignTicketService
                 TicketId = ticketId,
                 AgentId = null,
                 AttemptStatus = AssignmentAttemptStatus.Failed,
-                FailureReason = "No Available Agent Found.",
+                FailureReason = "No available agent found.",
                 CreatedAt = DateTime.UtcNow,
-                CompletedAt = DateTime.UtcNow,
+                CompletedAt = DateTime.UtcNow
             };
 
             await _attemptRepository.AddAsync(failedAttempt);
@@ -62,7 +62,7 @@ public class AutoAssignTicketService : IAutoAssignTicketService
         {
             var assignmentReason = source == AssignmentSource.RetryWorker ? "Assigned by retry worker" : "Auto-assigned to best available agent";
 
-            var affectedRows = await _ticketRepository.TryAssignAsync(ticket.Id,agent.Id, source, assignmentReason, cancellationToken);
+            var affectedRows = await _ticketRepository.TryAssignAsync(ticket.Id, agent.Id, source, assignmentReason, cancellationToken);
 
             if (affectedRows == 0)
                 throw new TicketAssignmentConflictException("Ticket was already assigned or cannot be assigned.");
@@ -72,7 +72,7 @@ public class AutoAssignTicketService : IAutoAssignTicketService
             if (updatedTicket is null)
                 throw new Exception("Ticket not found after assignment.");
 
-            var workloadAffectedRows = await _agentRepository.TryIncreamentWorkloadAsync(agent.Id,updatedTicket.AssignedAt!.Value,cancellationToken);
+            var workloadAffectedRows = await _agentRepository.TryIncreamentWorkloadAsync(agent.Id, updatedTicket.AssignedAt!.Value, cancellationToken);
 
             if (workloadAffectedRows == 0)
                 throw new TicketAssignmentConflictException("Selected agent is no longer available.");
@@ -122,13 +122,29 @@ public class AutoAssignTicketService : IAutoAssignTicketService
         catch
         {
             await _unitOfWork.RollbackTransactionAsync(CancellationToken.None);
+
+            _unitOfWork.ClearTracking();
+
+            var failedAttempt = new AssignmentAttempt
+            {
+                TicketId = ticketId,
+                AgentId = agent.Id,
+                AttemptStatus = AssignmentAttemptStatus.Failed,
+                FailureReason = "Ticket assignment failed during processing.",
+                CreatedAt = DateTime.UtcNow,
+                CompletedAt = DateTime.UtcNow
+            };
+
+            await _attemptRepository.AddAsync(failedAttempt);
+            await _unitOfWork.SaveChangesAsync(CancellationToken.None);
+
             throw;
         }
     }
 
     public Task<AssignTicketResponse> AutoAssignAsync(long ticketId, CancellationToken cancellationToken = default)
     {
-        return AssignBestAvailableAsync(ticketId, AssignmentSource.AutoAssignment ,cancellationToken);
+        return AssignBestAvailableAsync(ticketId, AssignmentSource.AutoAssignment, cancellationToken);
     }
 
     public Task<AssignTicketResponse> RetryAssignAsync(long ticketId, CancellationToken cancellationToken = default)
