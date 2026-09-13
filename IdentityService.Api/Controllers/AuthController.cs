@@ -33,11 +33,20 @@ public class AuthController : ControllerBase
         return Ok(result);
     }
 
-    [Authorize(Roles = RoleNames.Agent)]
+    [Authorize(Roles = $"{RoleNames.Agent},{RoleNames.Admin}")]
     [HttpPost("customers")]
     public async Task<IActionResult> CreateCustomer([FromBody] RegisterRequest request)
     {
         var response = await _identityService.CreateCustomerAsync(request);
+
+        return Ok(response);
+    }
+
+    [Authorize(Roles = RoleNames.Agent + "," + RoleNames.Admin)]
+    [HttpGet("users/{id}")]
+    public async Task<IActionResult> GetUserById(long id)
+    {
+        var response = await _identityService.GetCustomerByIdAsync(id);
 
         return Ok(response);
     }

@@ -1,5 +1,6 @@
 ﻿using IdentityService.Application.Constants;
 using IdentityService.Application.DTOs.Auth;
+using IdentityService.Application.DTOs.Users;
 using IdentityService.Application.Interfaces.Services;
 using IdentityService.Infrastructure.Identity;
 using Microsoft.AspNetCore.Identity;
@@ -42,6 +43,11 @@ public class IdentityServices : IIdentityService
             throw new Exception(error);
         }
 
+        var roleResult = await _userManager.AddToRoleAsync(user, RoleNames.Agent);
+
+        if (!roleResult.Succeeded)
+            throw new Exception(roleResult.Errors.FirstOrDefault()?.Description ?? "Failed to assign Agent role.");
+
         return new RegisterResponse
         {
             UserId = user.Id,
@@ -77,6 +83,11 @@ public class IdentityServices : IIdentityService
 
     public async Task<RegisterResponse> CreateCustomerAsync(RegisterRequest request, CancellationToken cancellationToken = default)
     {
+        var existingUser = await _userManager.FindByNameAsync(request.UserName);
+
+        if (existingUser is not null)
+            throw new Exception("Username already Exist.");
+
         var user = new ApplicationUser
         {
             UserName = request.UserName,
@@ -102,6 +113,29 @@ public class IdentityServices : IIdentityService
             Message = "Customer created successfully.",
             UserId = user.Id,
             UserName = user.UserName!
+        };
+
+    }
+    public async Task<UserResponse> GetCustomerByIdAsync(long userId)
+    {
+        var user = await _userManager.FindByIdAsync(userId.ToString());
+
+        if (user is null)
+            throw new Exception("Customer not found.");
+
+        var isCustomer = await _userManager.IsInRoleAsync(user, RoleNames.Customer);
+
+        if (!isCustomer)
+            throw new Exception("Customer not found.");
+
+        return new UserResponse
+        {
+            Id = user.Id,
+            UserName = user.UserName!,
+            Email = user.Email!,
+            FirstName = user.FirstName,
+            LastName = user.LastName,
+            NationalNumber = user.NationalNumber
         };
     }
 }
