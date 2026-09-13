@@ -19,11 +19,25 @@ namespace TicketService.Infrastructure.Repositories
             await _dbContext.AssignmentAttempts.AddAsync(attempt);
         }
 
-        public async Task<int> CountFailedAttemptsAsync(long ticketId, CancellationToken cancellationToken = default)
+        public async Task<int> CountFailedRetryAttemptsAsync(long ticketId, CancellationToken cancellationToken = default)
         {
-           return await _dbContext.AssignmentAttempts.CountAsync(a =>  a.TicketId == ticketId &&
-                                                                 a.AttemptStatus == AssignmentAttemptStatus.Failed,
-                                                                   cancellationToken);
+            return await _dbContext.AssignmentAttempts.CountAsync(a =>
+                a.TicketId == ticketId &&
+                a.AttemptStatus == AssignmentAttemptStatus.Failed &&
+                a.AssignmentSource == AssignmentSource.RetryWorker,
+                cancellationToken);
+        }
+
+        public async Task<DateTime?> GetLastFailedRetryAttemptAtAsync(long ticketId, CancellationToken cancellationToken = default)
+        {
+            return await _dbContext.AssignmentAttempts
+                .Where(a =>
+                    a.TicketId == ticketId &&
+                    a.AttemptStatus == AssignmentAttemptStatus.Failed &&
+                    a.AssignmentSource == AssignmentSource.RetryWorker)
+                .OrderByDescending(a => a.CreatedAt)
+                .Select(a => (DateTime?)a.CreatedAt)
+                .FirstOrDefaultAsync(cancellationToken);
         }
     }
 }

@@ -11,6 +11,7 @@ namespace TicketService.Domain.Entities
         public long TicketId { get; set; }
         public long? AgentId { get; set; }
         public AssignmentAttemptStatus AttemptStatus { get; set; }
+        public AssignmentSource? AssignmentSource { get; set; }
         public string? FailureReason { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime? CompletedAt { get; set; }

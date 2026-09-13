@@ -92,6 +92,7 @@ namespace TicketService.Application.Services
                     TicketId = ticket.Id,
                     AgentId = agent.Id,
                     AttemptStatus = AssignmentAttemptStatus.Succeeded,
+                    AssignmentSource = AssignmentSource.Manual,
                     CreatedAt = DateTime.UtcNow,
                     CompletedAt = DateTime.UtcNow
                 };
@@ -155,6 +156,7 @@ namespace TicketService.Application.Services
                         TicketId = ticketId,
                         AgentId = attemptedAgentId,
                         AttemptStatus = AssignmentAttemptStatus.Failed,
+                        AssignmentSource = AssignmentSource.Manual,
                         FailureReason = "Ticket assignment failed during processing.",
                         CreatedAt = DateTime.UtcNow,
                         CompletedAt = DateTime.UtcNow

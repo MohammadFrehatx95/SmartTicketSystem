@@ -82,6 +82,7 @@ public class AutoAssignTicketService : IAutoAssignTicketService
                 TicketId = updatedTicket.Id,
                 AgentId = agent.Id,
                 AttemptStatus = AssignmentAttemptStatus.Succeeded,
+                AssignmentSource = source,
                 CreatedAt = DateTime.UtcNow,
                 CompletedAt = DateTime.UtcNow
             };
@@ -130,6 +131,7 @@ public class AutoAssignTicketService : IAutoAssignTicketService
                 TicketId = ticketId,
                 AgentId = agent.Id,
                 AttemptStatus = AssignmentAttemptStatus.Failed,
+                AssignmentSource = source,
                 FailureReason = "Ticket assignment failed during processing.",
                 CreatedAt = DateTime.UtcNow,
                 CompletedAt = DateTime.UtcNow
