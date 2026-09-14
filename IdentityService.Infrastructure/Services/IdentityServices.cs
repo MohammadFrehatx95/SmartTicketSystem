@@ -1,6 +1,7 @@
 ﻿using IdentityService.Application.Constants;
 using IdentityService.Application.DTOs.Auth;
 using IdentityService.Application.DTOs.Users;
+using IdentityService.Application.Exceptions;
 using IdentityService.Application.Interfaces.Services;
 using IdentityService.Infrastructure.Identity;
 using Microsoft.AspNetCore.Identity;
@@ -23,7 +24,7 @@ public class IdentityServices : IIdentityService
         var existingUser = await _userManager.FindByNameAsync(request.UserName);
 
         if (existingUser is not null)
-            throw new Exception("Username already exists.");
+            throw new ConflictException("Username already exists.");
 
         var user = new ApplicationUser
         {
@@ -40,13 +41,13 @@ public class IdentityServices : IIdentityService
         if (!result.Succeeded)
         {
             var error = result.Errors.FirstOrDefault()?.Description ?? "Registration failed.";
-            throw new Exception(error);
+            throw new BadRequestException(error);
         }
 
         var roleResult = await _userManager.AddToRoleAsync(user, RoleNames.Agent);
 
         if (!roleResult.Succeeded)
-            throw new Exception(roleResult.Errors.FirstOrDefault()?.Description ?? "Failed to assign Agent role.");
+            throw new BadRequestException(roleResult.Errors.FirstOrDefault()?.Description ?? "Failed to assign Agent role.");
 
         return new RegisterResponse
         {
@@ -61,12 +62,12 @@ public class IdentityServices : IIdentityService
         var user = await _userManager.FindByNameAsync(request.UserName);
 
         if (user is null)
-            throw new Exception("Invalid username or password.");
+            throw new UnauthorizedException("Invalid username or password.");
 
         var passwordIsValid = await _userManager.CheckPasswordAsync(user, request.Password);
 
         if (!passwordIsValid)
-            throw new Exception("Invalid username or password.");
+            throw new UnauthorizedException("Invalid username or password.");
 
         var roles = await _userManager.GetRolesAsync(user);
 
@@ -86,7 +87,7 @@ public class IdentityServices : IIdentityService
         var existingUser = await _userManager.FindByNameAsync(request.UserName);
 
         if (existingUser is not null)
-            throw new Exception("Username already Exist.");
+            throw new ConflictException("Username already Exist.");
 
         var user = new ApplicationUser
         {
@@ -101,12 +102,12 @@ public class IdentityServices : IIdentityService
         var result = await _userManager.CreateAsync(user, request.Password);
 
         if (!result.Succeeded)
-            throw new Exception(result.Errors.FirstOrDefault()?.Description ?? "Customer creation failed.");
+            throw new BadRequestException(result.Errors.FirstOrDefault()?.Description ?? "Customer creation failed.");
 
         var roleResult = await _userManager.AddToRoleAsync(user, RoleNames.Customer);
 
         if (!roleResult.Succeeded)
-            throw new Exception(roleResult.Errors.FirstOrDefault()?.Description ?? "Failed to assign Customer role.");
+            throw new BadRequestException(roleResult.Errors.FirstOrDefault()?.Description ?? "Failed to assign Customer role.");
 
         return new RegisterResponse
         {
@@ -121,12 +122,12 @@ public class IdentityServices : IIdentityService
         var user = await _userManager.FindByIdAsync(userId.ToString());
 
         if (user is null)
-            throw new Exception("Customer not found.");
+            throw new NotFoundException("Customer not found.");
 
         var isCustomer = await _userManager.IsInRoleAsync(user, RoleNames.Customer);
 
         if (!isCustomer)
-            throw new Exception("Customer not found.");
+            throw new NotFoundException("Customer not found.");
 
         return new UserResponse
         {
