@@ -1,9 +1,13 @@
 <Solution>
   <Folder Name="/IdentityService/">
-    <Project Path="IdentityService.Api/IdentityService.Api.csproj" Id="44190cce-42ef-4f6e-9a44-11cd86e76576" />
-    <Project Path="IdentityService.Application/IdentityService.Application.csproj" Id="3e95c7c2-8f1f-4af0-bbc8-a79b9935d0cd" />
-    <Project Path="IdentityService.Domain/IdentityService.Domain.csproj" Id="6195d3ad-81a9-4225-ab65-2ff2d835b139" />
-    <Project Path="IdentityService.Infrastructure/IdentityService.Infrastructure.csproj" Id="6e8ca7ba-edfb-4322-a412-faf40709c7fc" />
+    <Project Path="src/Services/IdentityService/IdentityService.Api/IdentityService.Api.csproj" />
+    <Project Path="src/Services/IdentityService/IdentityService.Application/IdentityService.Application.csproj" />
+    <Project Path="src/Services/IdentityService/IdentityService.Domain/IdentityService.Domain.csproj" />
+    <Project Path="src/Services/IdentityService/IdentityService.Infrastructure/IdentityService.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/Shared/">
+    <Project Path="ClassLibrary1/Shared.Infrastructure.csproj" Id="b2c5016c-1988-4f30-959b-96f8ffd9768b" />
+    <Project Path="Shared.Application/Shared.Application.csproj" Id="45719bda-5808-4dcc-be65-df6090fdc33d" />
   </Folder>
   <Folder Name="/TicketService/">
     <Project Path="src/Services/TicketService/TicketService.Api/TicketService.Api.csproj" />
