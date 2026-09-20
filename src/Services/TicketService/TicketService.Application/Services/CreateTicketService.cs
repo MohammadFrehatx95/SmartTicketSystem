@@ -1,4 +1,5 @@
-﻿using TicketService.Application.DTOs.Ticket;
+﻿using Shared.Application.Exceptions;
+using TicketService.Application.DTOs.Ticket;
 using TicketService.Application.Interfaces.Persistence;
 using TicketService.Application.Interfaces.Repositories;
 using TicketService.Application.Interfaces.Services;
@@ -21,6 +22,9 @@ namespace TicketService.Application.Services
 
         public async Task<CreateTicketResponse> CreateAsync(CreateTicketRequest request, CancellationToken cancellationToken = default)
         {
+            if (request.CustomerId <= 0)
+                throw new BadRequestException("CustomerId is required.");
+
             var ticket = new Ticket
             {
                 CustomerId = request.CustomerId,

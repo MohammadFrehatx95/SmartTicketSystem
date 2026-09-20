@@ -22,7 +22,7 @@ namespace TicketService.Infrastructure.Repositories
         public async Task<Agent?> GetBestAvailableAgentAsync(string ticketCategory)
         {
             return await _dbContext.Agents.Where(a => a.IsActive && a.IsAvailable &&
-                                                 a.Department == ticketCategory &&
+                                                 a.Department.Name == ticketCategory &&
                                                  a.CurrentOpenTickets < a.MaxOpenTickets)
                                            .OrderBy(a => a.CurrentOpenTickets)
                                            .ThenBy(a => a.LastAssignedAt)

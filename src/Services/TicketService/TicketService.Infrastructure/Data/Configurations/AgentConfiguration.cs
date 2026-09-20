@@ -12,7 +12,11 @@ namespace TicketService.Infrastructure.Data.Configurations
 
             builder.HasKey(t => t.Id);
 
-            builder.Property(x => x.Department).IsRequired().HasMaxLength(100);
+            builder.HasOne(x => x.Department)
+                   .WithMany(x => x.Agents)
+                   .HasForeignKey(x => x.DepartmentId)
+                   .OnDelete(DeleteBehavior.Restrict);
         }
     }
 }
+

@@ -18,6 +18,7 @@ namespace TicketService.Infrastructure.Data
         public DbSet<AssignmentAttempt> AssignmentAttempts { get; set; }
         public DbSet<IdempotencyRecord> IdempotencyRecords { get; set; }
         public DbSet<OutboxMessage> OutboxMessages { get; set; }
+        public DbSet<Department> Departments { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

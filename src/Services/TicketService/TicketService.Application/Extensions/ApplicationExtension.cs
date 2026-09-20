@@ -16,6 +16,8 @@ public static class ApplicationExtension
 
         services.AddScoped<IAutoAssignTicketService, AutoAssignTicketService>();
 
+        services.AddScoped<IBatchAutoAssignService, BatchAutoAssignService>();
+
         return services;
     }
 }

@@ -2,7 +2,7 @@
 {
     public class CreateAgentRequest
     {
-        public string Department { get; set; } = string.Empty;
+        public long DepartmentId { get; set; }
         public int MaxOpenTickets { get; set; }
         public bool IsActive { get; set; }
         public bool IsAvailable { get; set; }

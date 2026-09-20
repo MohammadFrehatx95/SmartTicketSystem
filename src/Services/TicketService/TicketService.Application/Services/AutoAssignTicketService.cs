@@ -1,4 +1,5 @@
-﻿using System.Text.Json;
+﻿using Shared.Application.Exceptions;
+using System.Text.Json;
 using TicketService.Application.DTOs.Ticket;
 using TicketService.Application.Exceptions;
 using TicketService.Application.Interfaces.Persistence;
@@ -31,10 +32,10 @@ public class AutoAssignTicketService : IAutoAssignTicketService
         var ticket = await _ticketRepository.GetByIdAsNoTrackingAsync(ticketId);
 
         if (ticket is null)
-            throw new Exception("Ticket not found.");
+            throw new NotFoundException("Ticket not found.");
 
         if (ticket.Status != TicketStatus.New)
-            throw new TicketAssignmentConflictException("Ticket cannot be auto-assigned.");
+            throw new ConflictException("Ticket cannot be auto-assigned.");
 
         var agent = await _agentRepository.GetBestAvailableAgentAsync(ticket.Category);
 
@@ -45,6 +46,7 @@ public class AutoAssignTicketService : IAutoAssignTicketService
                 TicketId = ticketId,
                 AgentId = null,
                 AttemptStatus = AssignmentAttemptStatus.Failed,
+                AssignmentSource = source,
                 FailureReason = "No available agent found.",
                 CreatedAt = DateTime.UtcNow,
                 CompletedAt = DateTime.UtcNow
@@ -53,7 +55,10 @@ public class AutoAssignTicketService : IAutoAssignTicketService
             await _attemptRepository.AddAsync(failedAttempt);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-            throw new TicketAssignmentConflictException("No available agent found. Ticket will be retried later.");
+            if (source == AssignmentSource.RetryWorker)
+                throw new RetryAssignmentFailedException("No available agent found.", null);
+
+            throw new ConflictException("No available agent found, Ticket will be retried later.");
         }
 
         await _unitOfWork.BeginTransactionAsync(cancellationToken);
@@ -65,17 +70,17 @@ public class AutoAssignTicketService : IAutoAssignTicketService
             var affectedRows = await _ticketRepository.TryAssignAsync(ticket.Id, agent.Id, source, assignmentReason, cancellationToken);
 
             if (affectedRows == 0)
-                throw new TicketAssignmentConflictException("Ticket was already assigned or cannot be assigned.");
+                throw new ConflictException("Ticket was already assigned or cannot be assigned.");
 
             var updatedTicket = await _ticketRepository.GetByIdAsync(ticket.Id);
 
             if (updatedTicket is null)
-                throw new Exception("Ticket not found after assignment.");
+                throw new InvalidOperationException("Ticket was not found after assignment.");
 
             var workloadAffectedRows = await _agentRepository.TryIncreamentWorkloadAsync(agent.Id, updatedTicket.AssignedAt!.Value, cancellationToken);
 
             if (workloadAffectedRows == 0)
-                throw new TicketAssignmentConflictException("Selected agent is no longer available.");
+                throw new ConflictException("Selected agent is no longer available.");
 
             var attempt = new AssignmentAttempt
             {
@@ -89,12 +94,7 @@ public class AutoAssignTicketService : IAutoAssignTicketService
 
             await _attemptRepository.AddAsync(attempt);
 
-            var eventPayload = JsonSerializer.Serialize(new
-            {
-                TicketId = updatedTicket.Id,
-                AgentId = agent.Id,
-                AssignedAt = updatedTicket.AssignedAt
-            });
+            var eventPayload = JsonSerializer.Serialize(new { TicketId = updatedTicket.Id, AgentId = agent.Id, AssignedAt = updatedTicket.AssignedAt });
 
             var outboxMessage = new OutboxMessage
             {
@@ -120,10 +120,9 @@ public class AutoAssignTicketService : IAutoAssignTicketService
 
             return response;
         }
-        catch
+        catch(Exception ex)
         {
             await _unitOfWork.RollbackTransactionAsync(CancellationToken.None);
-
             _unitOfWork.ClearTracking();
 
             var failedAttempt = new AssignmentAttempt
@@ -139,6 +138,9 @@ public class AutoAssignTicketService : IAutoAssignTicketService
 
             await _attemptRepository.AddAsync(failedAttempt);
             await _unitOfWork.SaveChangesAsync(CancellationToken.None);
+
+            if (source == AssignmentSource.RetryWorker && ex is ConflictException)
+                throw new RetryAssignmentFailedException(ex.Message, agent.Id);
 
             throw;
         }

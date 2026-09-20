@@ -7,7 +7,7 @@ namespace TicketService.Application.DTOs.Agent
     public class CreateAgentResponse
     {
         public long Id { get; set; }
-        public string Department { get; set; } = string.Empty;
+        public long DepartmentId { get; set; }
         public int CurrentOpenTickets { get; set; }
         public int MaxOpenTickets { get; set; }
         public bool IsActive { get; set; }
