@@ -8,6 +8,8 @@ public static class MiddlewareExtension
     public static IApplicationBuilder UseSharedMiddlewares(this IApplicationBuilder app)
     {
         app.UseMiddleware<GlobalExceptionMiddleware>();
+        app.UseMiddleware<CorrelationIdMiddleware>();
+        app.UseMiddleware<RequestLoggingMiddleware>();
 
         return app;
     }

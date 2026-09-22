@@ -1,3 +1,4 @@
+using Shared.Infrastructure.Extensions;
 using TicketService.Api.Extensions;
 using TicketService.Application.Extensions;
 using TicketService.Infrastructure.Extensions;
@@ -24,6 +25,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+app.UseSharedMiddlewares();
 
 app.UseAuthentication();
 
