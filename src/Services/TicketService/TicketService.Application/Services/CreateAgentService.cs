@@ -19,21 +19,22 @@ namespace TicketService.Application.Services
             _unitOfWork = unitOfWork;
             _departmentRepository = departmentRepository;
         }
-        
+
         public async Task<CreateAgentResponse> CreateAsync(CreateAgentRequest request, CancellationToken cancellationToken)
         {
-            var depExists =  await _departmentRepository.ExistsAsync(request.DepartmentId, cancellationToken);
+            var depExists = await _departmentRepository.ExistsAsync(request.DepartmentId, cancellationToken);
 
             if (!depExists)
                 throw new NotFoundException("Department not found.");
 
             var agent = new Agent
             {
+                IdentityUserId = request.IdentityUserId,
                 DepartmentId = request.DepartmentId,
                 MaxOpenTickets = request.MaxOpenTickets,
-                IsActive = request.IsActive,
-                IsAvailable = request.IsAvailable,
                 CurrentOpenTickets = 0,
+                IsActive = true,
+                IsAvailable = true,
                 LastAssignedAt = null
             };
 
@@ -44,14 +45,12 @@ namespace TicketService.Application.Services
             {
                 Id = agent.Id,
                 DepartmentId = agent.DepartmentId,
+                IdentityUserId = agent.IdentityUserId,
                 CurrentOpenTickets = agent.CurrentOpenTickets,
                 MaxOpenTickets = agent.MaxOpenTickets,
                 IsActive = agent.IsActive,
                 IsAvailable = agent.IsAvailable
             };
-
         }
-
-
     }
 }

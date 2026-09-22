@@ -16,6 +16,8 @@ namespace TicketService.Infrastructure.Data.Configurations
                    .WithMany(x => x.Agents)
                    .HasForeignKey(x => x.DepartmentId)
                    .OnDelete(DeleteBehavior.Restrict);
+
+            builder.HasIndex(a => a.IdentityUserId).IsUnique();
         }
     }
 }

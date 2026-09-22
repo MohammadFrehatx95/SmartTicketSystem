@@ -3,6 +3,7 @@
     public class Agent
     {
         public long Id { get; set; }
+        public long IdentityUserId { get; set; }
         public bool IsActive { get; set; }
         public bool IsAvailable { get; set; }
         public long DepartmentId { get; set; }

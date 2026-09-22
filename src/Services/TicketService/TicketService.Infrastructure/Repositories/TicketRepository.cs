@@ -55,5 +55,14 @@ namespace TicketService.Infrastructure.Repositories
                                                ),
                                                cancellationToken);
         }
+
+        public async Task<List<Ticket>> GetAssignedTicketsByAgentIdAsync(long agentId, CancellationToken cancellationToken = default)
+        {
+            return await _dbContext.Tickets.AsNoTracking()
+                .Where(t => t.AssignedAgentId == agentId && t.Status == TicketStatus.Assigned)
+                .OrderByDescending(t => t.Priority)
+                .ThenBy(t => t.AssignedAt)
+                .ToListAsync(cancellationToken);
+        }
     }
 }

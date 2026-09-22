@@ -8,6 +8,7 @@ namespace TicketService.Application.DTOs.Agent
     {
         public long Id { get; set; }
         public long DepartmentId { get; set; }
+        public long IdentityUserId { get; set; }
         public int CurrentOpenTickets { get; set; }
         public int MaxOpenTickets { get; set; }
         public bool IsActive { get; set; }

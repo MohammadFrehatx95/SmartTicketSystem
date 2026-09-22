@@ -14,6 +14,7 @@ builder.Services.AddIdentityServices();
 builder.Services.AddInfrastructureServices();
 builder.Services.AddJwtServices(builder.Configuration);
 
+
 var app = builder.Build();
 
 await app.SeedIdentityRolesAsync();

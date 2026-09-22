@@ -44,5 +44,10 @@ namespace TicketService.Infrastructure.Repositories
                                                 a => a.LastAssignedAt,assignedAt),
                                           cancellationToken);
         }
+
+        public async Task<Agent?> GetByIdentityUserIdAsync(long identityUserId, CancellationToken cancellationToken = default)
+        {
+            return await _dbContext.Agents.AsNoTracking().FirstOrDefaultAsync(a => a.IdentityUserId == identityUserId, cancellationToken);
+        }
     }
 }
