@@ -5,6 +5,12 @@
     <Project Path="src/Services/IdentityService/IdentityService.Domain/IdentityService.Domain.csproj" />
     <Project Path="src/Services/IdentityService/IdentityService.Infrastructure/IdentityService.Infrastructure.csproj" />
   </Folder>
+  <Folder Name="/NotificationService/">
+    <Project Path="NotificationService.Api/NotificationService.Api.csproj" Id="fb7f5637-b065-4b5f-92bc-0f487b426c62" />
+    <Project Path="NotificationService.Infrastructure/NotificationService.Infrastructure.csproj" Id="52f9dd18-eed8-48f2-bc95-e09166299eaa" />
+    <Project Path="src/Services/NotificationService/NotificationService.Application/NotificationService.Application.csproj" Id="3e8f492b-91d9-41ed-a1b9-aa96c8fbf296" />
+    <Project Path="src/Services/NotificationService/NotificationService.Domain/NotificationService.Domain.csproj" Id="5d97c8b0-a5a7-4978-bc54-722f89e2ca7a" />
+  </Folder>
   <Folder Name="/Shared/">
     <Project Path="src/Services/Shared/Shared.Application/Shared.Application.csproj" />
     <Project Path="src/Services/Shared/Shared.Infrastructure/Shared.Infrastructure.csproj" />
