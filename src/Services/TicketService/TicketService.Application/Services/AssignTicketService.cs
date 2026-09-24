@@ -1,6 +1,7 @@
 ﻿using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using Shared.Application.Events;
 using Shared.Application.Exceptions;
 using TicketService.Application.DTOs.Ticket;
 using TicketService.Application.Interfaces.Persistence;
@@ -36,7 +37,6 @@ namespace TicketService.Application.Services
                 throw new BadRequestException("Idempotency-Key header is required.");
 
             var requestBody = JsonSerializer.Serialize(new { TicketId = ticketId, AgentId = request.AgentId });
-
             var requestHash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(requestBody)));
 
             var existingRecord = await _idempotencyRepository.GetByKeyAsync(idempotencyKey);
@@ -102,12 +102,24 @@ namespace TicketService.Application.Services
 
                 await _attemptRepository.AddAsync(attempt);
 
-                var eventPayload = JsonSerializer.Serialize(new { TicketId = ticket.Id, AgentId = agent.Id, AssignedAt = ticket.AssignedAt });
+                var eventKey = $"TicketAssigned:{ticket.Id}:{ticket.AssignmentVersion}";
+
+                var ticketAssignedEvent = new TicketAssignedEvent
+                {
+                    EventId = eventKey,
+                    TicketId = ticket.Id,
+                    AgentId = agent.Id,
+                    RecipientUserId = agent.IdentityUserId,
+                    AssignmentVersion = ticket.AssignmentVersion,
+                    AssignedAt = ticket.AssignedAt!.Value
+                };
+
+                var eventPayload = JsonSerializer.Serialize(ticketAssignedEvent);
 
                 var outboxMessage = new OutboxMessage
                 {
-                    EventKey = $"TicketAssigned:{ticket.Id}:{ticket.AssignmentVersion}",
-                    EventType = "TicketAssigned",
+                    EventKey = eventKey,
+                    EventType = nameof(TicketAssignedEvent),
                     Payload = eventPayload,
                     CreatedAt = DateTime.UtcNow
                 };

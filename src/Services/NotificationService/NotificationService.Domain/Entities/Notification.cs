@@ -9,6 +9,8 @@ namespace NotificationService.Domain.Entities
         public long Id { get; set; }
         public long TicketId { get; set; }
         public long AgentId { get; set; }
+
+        public long RecipientUserId { get; set; }
         public string Message { get; set; } = string.Empty;
         public bool IsRead { get; set; }
         public DateTime CreatedAt { get; set; }

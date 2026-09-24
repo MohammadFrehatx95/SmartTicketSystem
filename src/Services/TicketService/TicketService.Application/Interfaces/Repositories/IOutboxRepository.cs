@@ -8,5 +8,7 @@ namespace TicketService.Application.Interfaces.Repositories
     public interface IOutboxRepository
     {
         Task AddAsync(OutboxMessage message);
+
+        Task<List<OutboxMessage>> GetPendingAsync(int batchSize,CancellationToken cancellationToken = default);
     }
 }

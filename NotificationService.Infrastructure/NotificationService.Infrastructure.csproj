@@ -7,6 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="MassTransit.RabbitMQ" Version="9.2.2" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.12" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.12">
       <PrivateAssets>all</PrivateAssets>
@@ -19,6 +20,7 @@
   <ItemGroup>
     <ProjectReference Include="..\src\Services\NotificationService\NotificationService.Application\NotificationService.Application.csproj" />
     <ProjectReference Include="..\src\Services\NotificationService\NotificationService.Domain\NotificationService.Domain.csproj" />
+    <ProjectReference Include="..\src\Services\Shared\Shared.Application\Shared.Application.csproj" />
   </ItemGroup>
 
 </Project>

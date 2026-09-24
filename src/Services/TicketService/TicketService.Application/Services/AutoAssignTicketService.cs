@@ -1,4 +1,5 @@
-﻿using Shared.Application.Exceptions;
+﻿using Shared.Application.Events;
+using Shared.Application.Exceptions;
 using System.Text.Json;
 using TicketService.Application.DTOs.Ticket;
 using TicketService.Application.Exceptions;
@@ -94,12 +95,24 @@ public class AutoAssignTicketService : IAutoAssignTicketService
 
             await _attemptRepository.AddAsync(attempt);
 
-            var eventPayload = JsonSerializer.Serialize(new { TicketId = updatedTicket.Id, AgentId = agent.Id, AssignedAt = updatedTicket.AssignedAt });
+            var eventKey = $"TicketAssigned:{updatedTicket.Id}:{updatedTicket.AssignmentVersion}";
+
+            var ticketAssignedEvent = new TicketAssignedEvent
+            {
+                EventId = eventKey,
+                TicketId = updatedTicket.Id,
+                AgentId = agent.Id,
+                RecipientUserId = agent.IdentityUserId,
+                AssignmentVersion = updatedTicket.AssignmentVersion,
+                AssignedAt = updatedTicket.AssignedAt!.Value
+            };
+
+            var eventPayload = JsonSerializer.Serialize(ticketAssignedEvent);
 
             var outboxMessage = new OutboxMessage
             {
-                EventKey = $"TicketAssigned:{updatedTicket.Id}:{updatedTicket.AssignmentVersion}",
-                EventType = "TicketAssigned",
+                EventKey = eventKey,
+                EventType = nameof(TicketAssignedEvent),
                 Payload = eventPayload,
                 CreatedAt = DateTime.UtcNow
             };
@@ -120,7 +133,7 @@ public class AutoAssignTicketService : IAutoAssignTicketService
 
             return response;
         }
-        catch(Exception ex)
+        catch (Exception ex)
         {
             await _unitOfWork.RollbackTransactionAsync(CancellationToken.None);
             _unitOfWork.ClearTracking();

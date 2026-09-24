@@ -15,6 +15,10 @@ builder.Services.AddApplicationServices();
 
 builder.Services.AddJwtAuthentication(builder.Configuration);
 
+builder.Services.AddBroker(builder.Configuration);
+
+builder.Services.AddOutboxPublisher(builder.Configuration);
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
