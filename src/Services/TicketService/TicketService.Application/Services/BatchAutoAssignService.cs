@@ -16,7 +16,7 @@ public class BatchAutoAssignService : IBatchAutoAssignService
         _autoAssignTicketService = autoAssignTicketService;
     }
 
-    public async Task<BatchAutoAssignResponse> AssignBatchAsync(CancellationToken cancellationToken = default)
+    public async Task<BatchAutoAssignResponse> AssignBatchAsync(string? correlationId, CancellationToken cancellationToken = default)
     {
         var tickets = await _ticketRepository.GetNewUnassignedTicketsAsync(cancellationToken);
 
@@ -29,7 +29,7 @@ public class BatchAutoAssignService : IBatchAutoAssignService
         {
             try
             {
-                var result = await _autoAssignTicketService.AutoAssignAsync(ticket.Id, cancellationToken);
+                var result = await _autoAssignTicketService.AutoAssignAsync(ticket.Id, correlationId, cancellationToken);
 
                 response.Results.Add(new BatchAutoAssignItemResponse
                 {

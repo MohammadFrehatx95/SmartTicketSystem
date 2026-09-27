@@ -44,6 +44,8 @@ public class OutboxPublisherJob : IJob
                 if (ticketAssignedEvent is null)
                     throw new InvalidOperationException("Invalid TicketAssignedEvent payload.");
 
+                using var scope = _logger.BeginScope("CorrelationId: {CorrelationId}", ticketAssignedEvent.CorrelationId);
+
                 await _eventPublisher.PublishAsync(ticketAssignedEvent, cancellationToken);
 
                 message.ProcessedAt = DateTime.UtcNow;
@@ -51,6 +53,10 @@ public class OutboxPublisherJob : IJob
                 await _unitOfWork.SaveChangesAsync(cancellationToken);
 
                 _logger.LogInformation("Outbox message {EventKey} published successfully.", message.EventKey);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
             }
             catch (Exception ex)
             {

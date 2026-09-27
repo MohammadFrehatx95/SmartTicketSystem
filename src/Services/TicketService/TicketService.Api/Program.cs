@@ -19,6 +19,8 @@ builder.Services.AddBroker(builder.Configuration);
 
 builder.Services.AddOutboxPublisher(builder.Configuration);
 
+builder.Services.AddHttpContextAccessor();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.

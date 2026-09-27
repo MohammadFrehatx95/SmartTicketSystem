@@ -16,7 +16,7 @@ namespace TicketService.Api.Controllers
         private readonly IBatchAutoAssignService _batchAutoAssignService;
         private readonly IGetMyTicketsService _getMyTicketsService;
 
-        public TicketsController(ICreateTicketService createTicketService, IAssignTicketService assignTicketService, IAutoAssignTicketService autoAssignTicketService, IBatchAutoAssignService batchAutoAssignService , IGetMyTicketsService getMyTicketsService)
+        public TicketsController(ICreateTicketService createTicketService, IAssignTicketService assignTicketService, IAutoAssignTicketService autoAssignTicketService, IBatchAutoAssignService batchAutoAssignService, IGetMyTicketsService getMyTicketsService)
         {
             _createTicketService = createTicketService;
             _assignTicketService = assignTicketService;
@@ -30,14 +30,12 @@ namespace TicketService.Api.Controllers
         public async Task<IActionResult> GetMyTickets(CancellationToken cancellationToken)
         {
             var identityUserId = long.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-
             var result = await _getMyTicketsService.GetAsync(identityUserId, cancellationToken);
-
             return Ok(result);
         }
 
         [HttpPost]
-        public async Task<IActionResult> Create(CreateTicketRequest request, CancellationToken cancellationToken) 
+        public async Task<IActionResult> Create(CreateTicketRequest request, CancellationToken cancellationToken)
         {
             var result = await _createTicketService.CreateAsync(request, cancellationToken);
             return Ok(result);
@@ -47,7 +45,10 @@ namespace TicketService.Api.Controllers
         [HttpPut("{ticketId}/assign")]
         public async Task<IActionResult> Assign(long ticketId, AssignTicketRequest request, [FromHeader(Name = "Idempotency-Key")] string idempotencyKey, CancellationToken cancellationToken)
         {
-            var result = await _assignTicketService.AssignAsync(ticketId, request, idempotencyKey, cancellationToken);
+            var correlationId = Request.Headers["X-Correlation-Id"].FirstOrDefault();
+
+            var result = await _assignTicketService.AssignAsync(ticketId, request, idempotencyKey, correlationId, cancellationToken);
+
             return Ok(result);
         }
 
@@ -55,7 +56,10 @@ namespace TicketService.Api.Controllers
         [HttpPost("{ticketId}/auto-assign")]
         public async Task<IActionResult> AutoAssign(long ticketId, CancellationToken cancellationToken)
         {
-            var result = await _autoAssignTicketService.AutoAssignAsync(ticketId, cancellationToken);
+            var correlationId = Request.Headers["X-Correlation-Id"].FirstOrDefault();
+
+            var result = await _autoAssignTicketService.AutoAssignAsync(ticketId, correlationId, cancellationToken);
+
             return Ok(result);
         }
 
@@ -63,7 +67,10 @@ namespace TicketService.Api.Controllers
         [HttpPost("auto-assign-batch")]
         public async Task<IActionResult> AutoAssignBatch(CancellationToken cancellationToken)
         {
-            var result = await _batchAutoAssignService.AssignBatchAsync(cancellationToken);
+            var correlationId = Request.Headers["X-Correlation-Id"].FirstOrDefault();
+
+            var result = await _batchAutoAssignService.AssignBatchAsync(correlationId, cancellationToken);
+
             return Ok(result);
         }
     }

@@ -28,7 +28,7 @@ public class AutoAssignTicketService : IAutoAssignTicketService
         _unitOfWork = unitOfWork;
     }
 
-    private async Task<AssignTicketResponse> AssignBestAvailableAsync(long ticketId, AssignmentSource source, CancellationToken cancellationToken = default)
+    private async Task<AssignTicketResponse> AssignBestAvailableAsync(long ticketId, AssignmentSource source, string? correlationId, CancellationToken cancellationToken = default)
     {
         var ticket = await _ticketRepository.GetByIdAsNoTrackingAsync(ticketId);
 
@@ -104,7 +104,8 @@ public class AutoAssignTicketService : IAutoAssignTicketService
                 AgentId = agent.Id,
                 RecipientUserId = agent.IdentityUserId,
                 AssignmentVersion = updatedTicket.AssignmentVersion,
-                AssignedAt = updatedTicket.AssignedAt!.Value
+                AssignedAt = updatedTicket.AssignedAt!.Value,
+                CorrelationId = correlationId
             };
 
             var eventPayload = JsonSerializer.Serialize(ticketAssignedEvent);
@@ -159,13 +160,14 @@ public class AutoAssignTicketService : IAutoAssignTicketService
         }
     }
 
-    public Task<AssignTicketResponse> AutoAssignAsync(long ticketId, CancellationToken cancellationToken = default)
+    public Task<AssignTicketResponse> AutoAssignAsync(long ticketId, string? correlationId, CancellationToken cancellationToken = default)
     {
-        return AssignBestAvailableAsync(ticketId, AssignmentSource.AutoAssignment, cancellationToken);
+        return AssignBestAvailableAsync(ticketId, AssignmentSource.AutoAssignment, correlationId, cancellationToken);
     }
 
     public Task<AssignTicketResponse> RetryAssignAsync(long ticketId, CancellationToken cancellationToken = default)
     {
-        return AssignBestAvailableAsync(ticketId, AssignmentSource.RetryWorker, cancellationToken);
+        var correlationId = Guid.NewGuid().ToString();
+        return AssignBestAvailableAsync(ticketId, AssignmentSource.RetryWorker, correlationId, cancellationToken);
     }
 }

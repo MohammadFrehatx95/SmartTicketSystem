@@ -24,6 +24,8 @@ namespace NotificationService.Infrastructure.Extensions
 
                     cfg.ReceiveEndpoint(nameof(TicketAssignedEvent), e =>
                     {
+                        e.UseMessageRetry(r => r.Interval(3, TimeSpan.FromSeconds(5)));
+
                         e.ConfigureConsumer<TicketAssignedConsumer>(context);
                     });
                 });

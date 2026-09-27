@@ -31,7 +31,7 @@ namespace TicketService.Application.Services
             _idempotencyRepository = idempotencyRepository;
         }
 
-        public async Task<AssignTicketResponse> AssignAsync(long ticketId, AssignTicketRequest request, string idempotencyKey, CancellationToken cancellationToken = default)
+        public async Task<AssignTicketResponse> AssignAsync(long ticketId, AssignTicketRequest request, string idempotencyKey, string? correlationId, CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrWhiteSpace(idempotencyKey))
                 throw new BadRequestException("Idempotency-Key header is required.");
@@ -111,7 +111,8 @@ namespace TicketService.Application.Services
                     AgentId = agent.Id,
                     RecipientUserId = agent.IdentityUserId,
                     AssignmentVersion = ticket.AssignmentVersion,
-                    AssignedAt = ticket.AssignedAt!.Value
+                    AssignedAt = ticket.AssignedAt!.Value,
+                    CorrelationId = correlationId
                 };
 
                 var eventPayload = JsonSerializer.Serialize(ticketAssignedEvent);

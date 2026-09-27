@@ -23,7 +23,9 @@ namespace Shared.Infrastructure.Middlewares
             if (string.IsNullOrWhiteSpace(correlationId))
                 correlationId = Guid.NewGuid().ToString();
 
+            context.Request.Headers[CorrelationIdHeader] = correlationId;
             context.Response.Headers[CorrelationIdHeader] = correlationId;
+            context.TraceIdentifier = correlationId;
 
             using var scope = _logger.BeginScope("CorrelationId: {CorrelationId}", correlationId);
 
