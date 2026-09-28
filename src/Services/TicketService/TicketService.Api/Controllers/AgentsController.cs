@@ -17,7 +17,7 @@ namespace TicketService.Api.Controllers
             _createAgentService = createAgentService;
         }
 
-        [Authorize(Roles = "Supervisor")]
+        [Authorize(Roles = "Admin")]
         [HttpPost]
         public async Task<IActionResult> CreateAsync(CreateAgentRequest request, CancellationToken cancellation)
         {

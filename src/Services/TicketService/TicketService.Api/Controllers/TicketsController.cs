@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Shared.Application.Exceptions;
 using System.Security.Claims;
 using TicketService.Application.DTOs.Ticket;
 using TicketService.Application.Interfaces.Services;

@@ -39,10 +39,8 @@ namespace TicketService.Infrastructure.Repositories
                                                          .ToListAsync(cancellationToken);
         }
 
-        public async Task<int> TryAssignAsync(long ticketId, long agentId, AssignmentSource source, string assignmentReason ,CancellationToken cancellationToken = default)
+        public async Task<int> TryAssignAsync(long ticketId, long agentId, AssignmentSource source, string assignmentReason, DateTime assignedAt, CancellationToken cancellationToken = default)
         {
-            var assignedAt = DateTime.UtcNow;
-
             return await _dbContext.Tickets.Where(t => t.Id == ticketId && t.Status == TicketStatus.New && t.AssignedAgentId == null)
                                            .ExecuteUpdateAsync(setters => setters
                                                .SetProperty(t => t.AssignedAgentId, agentId)

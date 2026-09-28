@@ -26,7 +26,7 @@ public class AuthController : ControllerBase
         return Ok(result);
     }
 
-    [Authorize(Roles = RoleNames.Supervisor)]
+    [Authorize(Roles = RoleNames.Admin)]
     [HttpPost("register-agent")]
     public async Task<IActionResult> Register([FromBody] RegisterRequest request, CancellationToken cancellationToken)
     {

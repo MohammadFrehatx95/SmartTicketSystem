@@ -22,35 +22,37 @@ public class BatchAutoAssignService : IBatchAutoAssignService
 
         var response = new BatchAutoAssignResponse
         {
-            TotalTickets = tickets.Count
+            CheckedTickets = tickets.Count
         };
 
         foreach (var ticket in tickets)
         {
             try
             {
-                var result = await _autoAssignTicketService.AutoAssignAsync(ticket.Id, correlationId, cancellationToken);
-
-                response.Results.Add(new BatchAutoAssignItemResponse
-                {
-                    TicketId = result.TicketId,
-                    AssignedAgentId = result.AssignedAgentId,
-                    Succeeded = true
-                });
-
-                response.SucceededCount++;
+                await _autoAssignTicketService.AutoAssignAsync(ticket.Id, correlationId, cancellationToken);
+                response.AssignedTickets++;
             }
-            catch (Exception ex) when (ex is ConflictException or NotFoundException)
+            catch (ConflictException ex)
             {
-                response.Results.Add(new BatchAutoAssignItemResponse
-                {
-                    TicketId = ticket.Id,
-                    AssignedAgentId = null,
-                    Succeeded = false,
-                    FailureReason = ex.Message
-                });
+                response.SkippedTickets++;
 
-                response.FailedCount++;
+                if (ex.Message.Contains("No available agent", StringComparison.OrdinalIgnoreCase))
+                {
+                    response.NoAgentAvailable++;
+                }
+                else if (ex.Message.Contains("already assigned", StringComparison.OrdinalIgnoreCase) || ex.Message.Contains("cannot be auto-assigned", StringComparison.OrdinalIgnoreCase))
+                {
+                    response.AlreadyAssigned++;
+                }
+                else
+                {
+                    response.InvalidStatus++;
+                }
+            }
+            catch (Exception)
+            {
+                response.SkippedTickets++;
+                response.InvalidStatus++;
             }
         }
 

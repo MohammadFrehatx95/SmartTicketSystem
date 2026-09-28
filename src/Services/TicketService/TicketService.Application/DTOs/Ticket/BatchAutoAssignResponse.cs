@@ -2,8 +2,10 @@
 
 public class BatchAutoAssignResponse
 {
-    public int TotalTickets { get; set; }
-    public int SucceededCount { get; set; }
-    public int FailedCount { get; set; }
-    public List<BatchAutoAssignItemResponse> Results { get; set; } = [];
+    public int CheckedTickets { get; set; }
+    public int AssignedTickets { get; set; }
+    public int SkippedTickets { get; set; }
+    public int NoAgentAvailable { get; set; }
+    public int AlreadyAssigned { get; set; }
+    public int InvalidStatus { get; set; }
 }

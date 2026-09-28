@@ -19,7 +19,7 @@ public class AutoAssignTicketService : IAutoAssignTicketService
     private readonly IOutboxRepository _outboxRepository;
     private readonly IUnitOfWork _unitOfWork;
 
-    public AutoAssignTicketService(ITicketRepository ticketRepository, IAgentRepository agentRepository, IAssignmentAttemptRepository attemptRepository, IOutboxRepository outboxRepository, IUnitOfWork unitOfWork)
+    public AutoAssignTicketService(ITicketRepository ticketRepository, IAgentRepository agentRepository, IAssignmentAttemptRepository attemptRepository,IOutboxRepository outboxRepository, IUnitOfWork unitOfWork)
     {
         _ticketRepository = ticketRepository;
         _agentRepository = agentRepository;
@@ -62,59 +62,57 @@ public class AutoAssignTicketService : IAutoAssignTicketService
             throw new ConflictException("No available agent found, Ticket will be retried later.");
         }
 
+        var assignedAt = DateTime.UtcNow;
+        var newVersion = ticket.AssignmentVersion + 1;
+
         await _unitOfWork.BeginTransactionAsync(cancellationToken);
 
         try
         {
-            var assignmentReason = source == AssignmentSource.RetryWorker ? "Assigned by retry worker" : "Auto-assigned to best available agent";
+            var assignmentReason = source == AssignmentSource.RetryWorker
+                ? "Assigned by retry worker"
+                : "Auto-assigned to best available agent";
 
-            var affectedRows = await _ticketRepository.TryAssignAsync(ticket.Id, agent.Id, source, assignmentReason, cancellationToken);
+            var affectedRows = await _ticketRepository.TryAssignAsync(ticket.Id, agent.Id, source, assignmentReason, assignedAt, cancellationToken);
 
             if (affectedRows == 0)
                 throw new ConflictException("Ticket was already assigned or cannot be assigned.");
 
-            var updatedTicket = await _ticketRepository.GetByIdAsync(ticket.Id);
-
-            if (updatedTicket is null)
-                throw new InvalidOperationException("Ticket was not found after assignment.");
-
-            var workloadAffectedRows = await _agentRepository.TryIncreamentWorkloadAsync(agent.Id, updatedTicket.AssignedAt!.Value, cancellationToken);
+            var workloadAffectedRows = await _agentRepository.TryIncreamentWorkloadAsync(agent.Id, assignedAt, cancellationToken);
 
             if (workloadAffectedRows == 0)
                 throw new ConflictException("Selected agent is no longer available.");
 
             var attempt = new AssignmentAttempt
             {
-                TicketId = updatedTicket.Id,
+                TicketId = ticket.Id,
                 AgentId = agent.Id,
                 AttemptStatus = AssignmentAttemptStatus.Succeeded,
                 AssignmentSource = source,
-                CreatedAt = DateTime.UtcNow,
+                CreatedAt = assignedAt,
                 CompletedAt = DateTime.UtcNow
             };
 
             await _attemptRepository.AddAsync(attempt);
 
-            var eventKey = $"TicketAssigned:{updatedTicket.Id}:{updatedTicket.AssignmentVersion}";
+            var eventKey = $"TicketAssigned:{ticket.Id}:{newVersion}";
 
             var ticketAssignedEvent = new TicketAssignedEvent
             {
                 EventId = eventKey,
-                TicketId = updatedTicket.Id,
+                TicketId = ticket.Id,
                 AgentId = agent.Id,
                 RecipientUserId = agent.IdentityUserId,
-                AssignmentVersion = updatedTicket.AssignmentVersion,
-                AssignedAt = updatedTicket.AssignedAt!.Value,
+                AssignmentVersion = newVersion,
+                AssignedAt = assignedAt,
                 CorrelationId = correlationId
             };
-
-            var eventPayload = JsonSerializer.Serialize(ticketAssignedEvent);
 
             var outboxMessage = new OutboxMessage
             {
                 EventKey = eventKey,
                 EventType = nameof(TicketAssignedEvent),
-                Payload = eventPayload,
+                Payload = JsonSerializer.Serialize(ticketAssignedEvent),
                 CreatedAt = DateTime.UtcNow
             };
 
@@ -122,11 +120,11 @@ public class AutoAssignTicketService : IAutoAssignTicketService
 
             var response = new AssignTicketResponse
             {
-                TicketId = updatedTicket.Id,
+                TicketId = ticket.Id,
                 AssignedAgentId = agent.Id,
-                Status = updatedTicket.Status,
-                AssignmentSource = updatedTicket.AssignmentSource!.Value,
-                AssignedAt = updatedTicket.AssignedAt!.Value
+                Status = TicketStatus.Assigned,
+                AssignmentSource = source,
+                AssignedAt = assignedAt
             };
 
             await _unitOfWork.SaveChangesAsync(cancellationToken);

@@ -37,6 +37,7 @@ namespace TicketService.Application.Services
                 throw new BadRequestException("Idempotency-Key header is required.");
 
             var requestBody = JsonSerializer.Serialize(new { TicketId = ticketId, AgentId = request.AgentId });
+
             var requestHash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(requestBody)));
 
             var existingRecord = await _idempotencyRepository.GetByKeyAsync(idempotencyKey);
@@ -47,7 +48,6 @@ namespace TicketService.Application.Services
                     throw new ConflictException("Idempotency-Key was already used with a different request.");
 
                 var cachedResponse = JsonSerializer.Deserialize<AssignTicketResponse>(existingRecord.ResponseBody);
-
                 if (cachedResponse is null)
                     throw new InvalidOperationException("Invalid cached idempotency response.");
 
@@ -59,81 +59,76 @@ namespace TicketService.Application.Services
             if (existingTicket is null)
                 throw new NotFoundException("Ticket not found.");
 
-            var assignmentStarted = false;
-            long? attemptedAgentId = null;
+
+            if (existingTicket.Status != TicketStatus.New)
+                throw new BadRequestException("Ticket must be in New status to be assigned.");
+
+            var agent = await _agentRepository.GetByIdAsync(request.AgentId);
+            if (agent is null)
+                throw new NotFoundException("Agent not found.");
+
+            if (!agent.IsActive)
+                throw new BadRequestException("Agent is not active.");
+
+            var assignedAt = DateTime.UtcNow;
+            var newVersion = existingTicket.AssignmentVersion + 1;
 
             await _unitOfWork.BeginTransactionAsync(cancellationToken);
 
             try
             {
-                assignmentStarted = true;
 
-                var agent = await _agentRepository.GetByIdAsync(request.AgentId);
-
-                if (agent is null)
-                    throw new NotFoundException("Agent not found.");
-
-                attemptedAgentId = agent.Id;
-
-                var affectedRows = await _ticketRepository.TryAssignAsync(ticketId, agent.Id, AssignmentSource.Manual, "Manual Assignment", cancellationToken);
+                var affectedRows = await _ticketRepository.TryAssignAsync(ticketId, agent.Id, AssignmentSource.Manual, "Manual Assignment", assignedAt, cancellationToken);
 
                 if (affectedRows == 0)
                     throw new ConflictException("Ticket was already assigned or cannot be assigned.");
 
-                var ticket = await _ticketRepository.GetByIdAsync(ticketId);
 
-                if (ticket is null)
-                    throw new InvalidOperationException("Ticket was not found after assignment.");
-
-                var workloadAffectedRows = await _agentRepository.TryIncreamentWorkloadAsync(agent.Id, ticket.AssignedAt!.Value, cancellationToken);
+                var workloadAffectedRows = await _agentRepository.TryIncreamentWorkloadAsync(agent.Id, assignedAt, cancellationToken);
 
                 if (workloadAffectedRows == 0)
                     throw new ConflictException("Agent reached maximum workload or is no longer available.");
 
+
                 var attempt = new AssignmentAttempt
                 {
-                    TicketId = ticket.Id,
+                    TicketId = ticketId,
                     AgentId = agent.Id,
                     AttemptStatus = AssignmentAttemptStatus.Succeeded,
                     AssignmentSource = AssignmentSource.Manual,
-                    CreatedAt = DateTime.UtcNow,
+                    CreatedAt = assignedAt,
                     CompletedAt = DateTime.UtcNow
                 };
-
                 await _attemptRepository.AddAsync(attempt);
 
-                var eventKey = $"TicketAssigned:{ticket.Id}:{ticket.AssignmentVersion}";
-
+                var eventKey = $"TicketAssigned:{ticketId}:{newVersion}";
                 var ticketAssignedEvent = new TicketAssignedEvent
                 {
                     EventId = eventKey,
-                    TicketId = ticket.Id,
+                    TicketId = ticketId,
                     AgentId = agent.Id,
                     RecipientUserId = agent.IdentityUserId,
-                    AssignmentVersion = ticket.AssignmentVersion,
-                    AssignedAt = ticket.AssignedAt!.Value,
+                    AssignmentVersion = newVersion,
+                    AssignedAt = assignedAt,
                     CorrelationId = correlationId
                 };
-
-                var eventPayload = JsonSerializer.Serialize(ticketAssignedEvent);
 
                 var outboxMessage = new OutboxMessage
                 {
                     EventKey = eventKey,
                     EventType = nameof(TicketAssignedEvent),
-                    Payload = eventPayload,
+                    Payload = JsonSerializer.Serialize(ticketAssignedEvent),
                     CreatedAt = DateTime.UtcNow
                 };
-
                 await _outboxRepository.AddAsync(outboxMessage);
 
                 var response = new AssignTicketResponse
                 {
-                    TicketId = ticket.Id,
+                    TicketId = ticketId,
                     AssignedAgentId = agent.Id,
-                    Status = ticket.Status,
-                    AssignmentSource = ticket.AssignmentSource!.Value,
-                    AssignedAt = ticket.AssignedAt!.Value
+                    Status = TicketStatus.Assigned,
+                    AssignmentSource = AssignmentSource.Manual,
+                    AssignedAt = assignedAt
                 };
 
                 var idempotencyRecord = new IdempotencyRecord
@@ -146,8 +141,8 @@ namespace TicketService.Application.Services
                     CreatedAt = DateTime.UtcNow,
                     ExpiresAt = DateTime.UtcNow.AddHours(24)
                 };
-
                 await _idempotencyRepository.AddAsync(idempotencyRecord);
+
                 await _unitOfWork.SaveChangesAsync(cancellationToken);
                 await _unitOfWork.CommitTransactionAsync(cancellationToken);
 
@@ -158,22 +153,19 @@ namespace TicketService.Application.Services
                 await _unitOfWork.RollbackTransactionAsync(CancellationToken.None);
                 _unitOfWork.ClearTracking();
 
-                if (assignmentStarted)
+                var failedAttempt = new AssignmentAttempt
                 {
-                    var failedAttempt = new AssignmentAttempt
-                    {
-                        TicketId = ticketId,
-                        AgentId = attemptedAgentId,
-                        AttemptStatus = AssignmentAttemptStatus.Failed,
-                        AssignmentSource = AssignmentSource.Manual,
-                        FailureReason = "Ticket assignment failed during processing.",
-                        CreatedAt = DateTime.UtcNow,
-                        CompletedAt = DateTime.UtcNow
-                    };
+                    TicketId = ticketId,
+                    AgentId = agent.Id,
+                    AttemptStatus = AssignmentAttemptStatus.Failed,
+                    AssignmentSource = AssignmentSource.Manual,
+                    FailureReason = "Ticket assignment failed during processing.",
+                    CreatedAt = DateTime.UtcNow,
+                    CompletedAt = DateTime.UtcNow
+                };
 
-                    await _attemptRepository.AddAsync(failedAttempt);
-                    await _unitOfWork.SaveChangesAsync(CancellationToken.None);
-                }
+                await _attemptRepository.AddAsync(failedAttempt);
+                await _unitOfWork.SaveChangesAsync(CancellationToken.None);
 
                 throw;
             }
