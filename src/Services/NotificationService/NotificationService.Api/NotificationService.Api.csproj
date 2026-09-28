@@ -14,10 +14,10 @@
     </PackageReference>
   </ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\NotificationService.Infrastructure\NotificationService.Infrastructure.csproj" />
-    <ProjectReference Include="..\src\Services\NotificationService\NotificationService.Application\NotificationService.Application.csproj" />
-  </ItemGroup>
+	<ItemGroup>
+		<ProjectReference Include="..\NotificationService.Infrastructure\NotificationService.Infrastructure.csproj" />
+		<ProjectReference Include="..\NotificationService.Application\NotificationService.Application.csproj" />
+	</ItemGroup>
 
   <ItemGroup>
     <Folder Include="Controllers\" />

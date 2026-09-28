@@ -4,9 +4,9 @@ using TicketService.Infrastructure.Data;
 
 namespace TicketService.Infrastructure.Repositories
 {
-    public class DepartmentRepository :  IDepartmentRepository
+    public class DepartmentRepository : IDepartmentRepository
     {
-        public readonly TicketDbContext _dbContext;
+        private readonly TicketDbContext _dbContext;
 
         public DepartmentRepository(TicketDbContext dbContext)
         {
@@ -15,7 +15,7 @@ namespace TicketService.Infrastructure.Repositories
 
         public async Task<bool> ExistsAsync(long departmentId, CancellationToken cancellationToken)
         {
-            return await _dbContext.Departments.AnyAsync(x => x.Id == departmentId);
+            return await _dbContext.Departments.AnyAsync(x => x.Id == departmentId, cancellationToken);
         }
     }
 }

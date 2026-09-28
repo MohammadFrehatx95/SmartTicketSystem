@@ -10,9 +10,6 @@ public static class InfrastructureExtension
     {
         services.AddScoped<IIdentityService, IdentityServices>();
 
-        services.AddScoped<IJwtService, JwtService>();
-
-
         return services;
     }
 }

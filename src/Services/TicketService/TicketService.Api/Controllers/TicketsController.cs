@@ -35,6 +35,7 @@ namespace TicketService.Api.Controllers
             return Ok(result);
         }
 
+        [Authorize(Roles = "Agent")]
         [HttpPost]
         public async Task<IActionResult> Create(CreateTicketRequest request, CancellationToken cancellationToken)
         {

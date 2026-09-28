@@ -141,6 +141,8 @@ namespace TicketService.Application.Services
                     CreatedAt = DateTime.UtcNow,
                     ExpiresAt = DateTime.UtcNow.AddHours(24)
                 };
+
+
                 await _idempotencyRepository.AddAsync(idempotencyRecord);
 
                 await _unitOfWork.SaveChangesAsync(cancellationToken);

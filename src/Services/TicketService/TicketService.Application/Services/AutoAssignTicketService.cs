@@ -19,7 +19,7 @@ public class AutoAssignTicketService : IAutoAssignTicketService
     private readonly IOutboxRepository _outboxRepository;
     private readonly IUnitOfWork _unitOfWork;
 
-    public AutoAssignTicketService(ITicketRepository ticketRepository, IAgentRepository agentRepository, IAssignmentAttemptRepository attemptRepository,IOutboxRepository outboxRepository, IUnitOfWork unitOfWork)
+    public AutoAssignTicketService(ITicketRepository ticketRepository, IAgentRepository agentRepository, IAssignmentAttemptRepository attemptRepository, IOutboxRepository outboxRepository, IUnitOfWork unitOfWork)
     {
         _ticketRepository = ticketRepository;
         _agentRepository = agentRepository;
@@ -59,7 +59,7 @@ public class AutoAssignTicketService : IAutoAssignTicketService
             if (source == AssignmentSource.RetryWorker)
                 throw new RetryAssignmentFailedException("No available agent found.", null);
 
-            throw new ConflictException("No available agent found, Ticket will be retried later.");
+            throw new NoAvailableAgentException("No available agent found. Ticket will be retried later.");
         }
 
         var assignedAt = DateTime.UtcNow;
@@ -69,9 +69,7 @@ public class AutoAssignTicketService : IAutoAssignTicketService
 
         try
         {
-            var assignmentReason = source == AssignmentSource.RetryWorker
-                ? "Assigned by retry worker"
-                : "Auto-assigned to best available agent";
+            var assignmentReason = source == AssignmentSource.RetryWorker ? "Assigned by retry worker" : "Auto-assigned to best available agent";
 
             var affectedRows = await _ticketRepository.TryAssignAsync(ticket.Id, agent.Id, source, assignmentReason, assignedAt, cancellationToken);
 

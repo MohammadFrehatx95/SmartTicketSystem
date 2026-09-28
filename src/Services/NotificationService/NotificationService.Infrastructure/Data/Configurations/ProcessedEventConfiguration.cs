@@ -12,6 +12,8 @@ namespace NotificationService.Infrastructure.Persistence.Configurations
 
             builder.Property(x => x.EventId).IsRequired().HasMaxLength(200);
 
+            builder.Property(x => x.EventType).IsRequired().HasMaxLength(200);
+
             builder.HasIndex(x => x.EventId).IsUnique();
 
             builder.Property(x => x.ProcessedAt).IsRequired();

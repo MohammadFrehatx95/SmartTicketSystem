@@ -19,11 +19,16 @@ namespace Shared.Infrastructure.Middlewares
         {
             var stopwatch = Stopwatch.StartNew();
 
-            await _next(context);
+            try
+            {
+                await _next(context);
+            }
+            finally
+            {
+                stopwatch.Stop();
 
-            stopwatch.Stop();
-
-            _logger.LogInformation("HTTP {Method} {Path} responded {StatusCode} in {Duration} ms",context.Request.Method,context.Request.Path,context.Response.StatusCode,stopwatch.ElapsedMilliseconds);
+                _logger.LogInformation("HTTP {Method} {Path} responded {StatusCode} in {Duration} ms", context.Request.Method, context.Request.Path, context.Response.StatusCode, stopwatch.ElapsedMilliseconds);
+            }
         }
     }
 }

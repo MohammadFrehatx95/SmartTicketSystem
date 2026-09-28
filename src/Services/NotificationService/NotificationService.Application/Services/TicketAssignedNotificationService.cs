@@ -1,4 +1,5 @@
-﻿using NotificationService.Application.Interfaces.Persistence;
+﻿using NotificationService.Application.Exceptions;
+using NotificationService.Application.Interfaces.Persistence;
 using NotificationService.Application.Interfaces.Repositories;
 using NotificationService.Application.Interfaces.Services;
 using NotificationService.Domain.Entities;
@@ -38,13 +39,21 @@ namespace NotificationService.Application.Services
             var processedEvent = new ProcessedEvent
             {
                 EventId = eventId,
+                EventType = "TicketAssignedEvent",
                 ProcessedAt = DateTime.UtcNow
             };
 
             await _notificationRepository.AddAsync(notification, cancellationToken);
             await _processedEventRepository.AddAsync(processedEvent, cancellationToken);
 
-            await _unitOfWork.SaveChangesAsync(cancellationToken);
+            try
+            {
+                await _unitOfWork.SaveChangesAsync(cancellationToken);
+            }
+            catch (DuplicateProcessedEventException)
+            {
+                return;
+            }
         }
     }
 }

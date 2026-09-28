@@ -19,7 +19,7 @@ public class OutboxPublisherJob : IJob
     private readonly ILogger<OutboxPublisherJob> _logger;
     private readonly OutboxPublisherOptions _options;
 
-    public OutboxPublisherJob(IOutboxRepository outboxRepository, IEventPublisher eventPublisher, IUnitOfWork unitOfWork, ILogger<OutboxPublisherJob> logger, IOptions<OutboxPublisherOptions> options)
+    public OutboxPublisherJob(IOutboxRepository outboxRepository, IEventPublisher eventPublisher,IUnitOfWork unitOfWork,ILogger<OutboxPublisherJob> logger, IOptions<OutboxPublisherOptions> options)
     {
         _outboxRepository = outboxRepository;
         _eventPublisher = eventPublisher;
@@ -49,10 +49,11 @@ public class OutboxPublisherJob : IJob
                 await _eventPublisher.PublishAsync(ticketAssignedEvent, cancellationToken);
 
                 message.ProcessedAt = DateTime.UtcNow;
+                message.NextRetryAt = null;
 
                 await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-                _logger.LogInformation("Outbox message {EventKey} published successfully.", message.EventKey);
+                _logger.LogInformation("Outbox message {EventKey} published successfully after {RetryCount} retries.",message.EventKey,message.RetryCount);
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
@@ -62,9 +63,13 @@ public class OutboxPublisherJob : IJob
             {
                 message.RetryCount++;
 
+                var delaySeconds = Math.Min(Math.Pow(2, message.RetryCount - 1) * 15, 300);
+
+                message.NextRetryAt = DateTime.UtcNow.AddSeconds(delaySeconds);
+
                 await _unitOfWork.SaveChangesAsync(CancellationToken.None);
 
-                _logger.LogError(ex, "Failed to publish outbox message {EventKey}. RetryCount: {RetryCount}", message.EventKey, message.RetryCount);
+                _logger.LogError(ex,"Failed to publish outbox message {EventKey}. RetryCount: {RetryCount}. NextRetryAt: {NextRetryAt}.", message.EventKey, message.RetryCount, message.NextRetryAt);
             }
         }
     }

@@ -30,8 +30,6 @@ public static class InfrastructureExtension
 
         services.Configure<RetryWorkerOption>(configuration.GetSection("RetryWorker"));
 
-        services.Configure<RetryWorkerOption>(configuration.GetSection("RetryWorker"));
-
         var intervalMinutes = configuration.GetValue<int>("RetryWorker:IntervalMinutes", 60);
 
         services.AddQuartz(q =>

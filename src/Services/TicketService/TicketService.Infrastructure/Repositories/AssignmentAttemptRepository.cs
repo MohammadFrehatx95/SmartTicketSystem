@@ -1,7 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
-using TicketService.Application.Interfaces.Repositories;
+﻿using TicketService.Application.Interfaces.Repositories;
 using TicketService.Domain.Entities;
-using TicketService.Domain.Enums;
 using TicketService.Infrastructure.Data;
 
 namespace TicketService.Infrastructure.Repositories
@@ -17,27 +15,6 @@ namespace TicketService.Infrastructure.Repositories
         public async Task AddAsync(AssignmentAttempt attempt)
         {
             await _dbContext.AssignmentAttempts.AddAsync(attempt);
-        }
-
-        public async Task<int> CountFailedRetryAttemptsAsync(long ticketId, CancellationToken cancellationToken = default)
-        {
-            return await _dbContext.AssignmentAttempts.CountAsync(a =>
-                a.TicketId == ticketId &&
-                a.AttemptStatus == AssignmentAttemptStatus.Failed &&
-                a.AssignmentSource == AssignmentSource.RetryWorker,
-                cancellationToken);
-        }
-
-        public async Task<DateTime?> GetLastFailedRetryAttemptAtAsync(long ticketId, CancellationToken cancellationToken = default)
-        {
-            return await _dbContext.AssignmentAttempts
-                .Where(a =>
-                    a.TicketId == ticketId &&
-                    a.AttemptStatus == AssignmentAttemptStatus.Failed &&
-                    a.AssignmentSource == AssignmentSource.RetryWorker)
-                .OrderByDescending(a => a.CreatedAt)
-                .Select(a => (DateTime?)a.CreatedAt)
-                .FirstOrDefaultAsync(cancellationToken);
         }
     }
 }

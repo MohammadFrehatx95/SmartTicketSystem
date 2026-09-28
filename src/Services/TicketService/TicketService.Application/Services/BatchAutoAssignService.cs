@@ -1,7 +1,9 @@
 ﻿using Shared.Application.Exceptions;
 using TicketService.Application.DTOs.Ticket;
+using TicketService.Application.Exceptions;
 using TicketService.Application.Interfaces.Repositories;
 using TicketService.Application.Interfaces.Services;
+using TicketService.Domain.Enums;
 
 namespace TicketService.Application.Services;
 
@@ -30,29 +32,38 @@ public class BatchAutoAssignService : IBatchAutoAssignService
             try
             {
                 await _autoAssignTicketService.AutoAssignAsync(ticket.Id, correlationId, cancellationToken);
+
                 response.AssignedTickets++;
             }
-            catch (ConflictException ex)
+            catch (NoAvailableAgentException)
+            {
+                response.SkippedTickets++;
+                response.NoAgentAvailable++;
+            }
+            catch (ConflictException)
             {
                 response.SkippedTickets++;
 
-                if (ex.Message.Contains("No available agent", StringComparison.OrdinalIgnoreCase))
+                var currentTicket = await _ticketRepository.GetByIdAsNoTrackingAsync(ticket.Id);
+
+                if (currentTicket is null)
                 {
-                    response.NoAgentAvailable++;
+                    response.InvalidStatus++;
+                    continue;
                 }
-                else if (ex.Message.Contains("already assigned", StringComparison.OrdinalIgnoreCase) || ex.Message.Contains("cannot be auto-assigned", StringComparison.OrdinalIgnoreCase))
+
+                if (currentTicket.AssignedAgentId is not null || currentTicket.Status == TicketStatus.Assigned)
                 {
                     response.AlreadyAssigned++;
                 }
-                else
+                else if (currentTicket.Status != TicketStatus.New)
                 {
                     response.InvalidStatus++;
                 }
-            }
-            catch (Exception)
-            {
-                response.SkippedTickets++;
-                response.InvalidStatus++;
+                else
+                {
+                    response.NoAgentAvailable++;
+                }
             }
         }
 

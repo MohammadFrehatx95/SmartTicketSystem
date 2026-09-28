@@ -19,11 +19,15 @@ namespace TicketService.Infrastructure.Repositories
             await _dbContext.OutboxMessages.AddAsync(message);  
         }
 
-        public async Task<List<OutboxMessage>> GetPendingAsync(int batchSize,CancellationToken cancellationToken = default)
+        public async Task<List<OutboxMessage>> GetPendingAsync(int batchSize, CancellationToken cancellationToken = default)
         {
+            var now = DateTime.UtcNow;
+
             return await _dbContext.OutboxMessages
-                .Where(x => x.ProcessedAt == null)
-                .OrderBy(x => x.CreatedAt)
+                .Where(x => x.ProcessedAt == null &&
+                            (x.NextRetryAt == null || x.NextRetryAt <= now))
+                .OrderBy(x => x.NextRetryAt ?? x.CreatedAt)
+                .ThenBy(x => x.CreatedAt)
                 .Take(batchSize)
                 .ToListAsync(cancellationToken);
         }
