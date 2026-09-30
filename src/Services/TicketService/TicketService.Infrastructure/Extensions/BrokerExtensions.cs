@@ -3,6 +3,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Shared.Application.Broker;
 using Shared.Infrastructure.Broker;
+using Shared.Contracts.Customers;
 
 namespace TicketService.Infrastructure.Extensions
 {
@@ -12,6 +13,8 @@ namespace TicketService.Infrastructure.Extensions
         {
             services.AddMassTransit(x =>
             {
+                x.AddRequestClient<GetOrCreateCustomerRequest>();
+
                 x.UsingRabbitMq((context, cfg) =>
                 {
                     cfg.Host(configuration["RabbitMq:Host"], configuration["RabbitMq:VirtualHost"], h =>

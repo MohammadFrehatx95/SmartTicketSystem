@@ -8,4 +8,5 @@ public interface IIdentityService
     Task<RegisterResponse> RegisterAgentAsync(RegisterRequest request, CancellationToken cancellationToken = default);
     Task<LoginResponse> LoginAsync(LoginRequest request, CancellationToken cancellationToken = default);
     Task<RegisterResponse> RegisterSupervisorAsync(RegisterRequest request, CancellationToken cancellationToken = default);
+    Task<RegisterResponse> RegisterCustomerAsync(RegisterRequest request, CancellationToken cancellationToken = default);
 }

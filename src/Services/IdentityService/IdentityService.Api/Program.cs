@@ -10,9 +10,14 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 builder.Services.ConnectDatabase(builder.Configuration);
+
 builder.Services.AddIdentityServices();
+
 builder.Services.AddInfrastructureServices();
+
 builder.Services.AddJwtServices(builder.Configuration);
+
+builder.Services.AddBrokerServices();
 
 
 var app = builder.Build();

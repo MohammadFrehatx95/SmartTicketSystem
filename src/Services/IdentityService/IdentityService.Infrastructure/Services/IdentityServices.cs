@@ -115,4 +115,39 @@ public class IdentityServices : IIdentityService
             UserName = user.UserName!
         };
     }
+
+    public async Task<RegisterResponse> RegisterCustomerAsync(RegisterRequest request, CancellationToken cancellationToken = default)
+    {
+        var existingUser = await _userManager.FindByEmailAsync(request.Email);
+
+        if (existingUser is not null)
+            throw new ConflictException("Email already exists.");
+
+        var user = new ApplicationUser
+        {
+            UserName = request.UserName,
+            Email = request.Email,
+            FirstName = request.FirstName,
+            LastName = request.LastName,
+            NationalNumber = request.NationalNumber,
+            BirthDate = request.BirthDate ?? throw new BadRequestException("Birth Date is required.")
+        };
+
+        var result = await _userManager.CreateAsync(user, request.Password);
+
+        if (!result.Succeeded)
+            throw new BadRequestException(result.Errors.FirstOrDefault()?.Description ?? "Customer registration failed.");
+
+        var roleResult = await _userManager.AddToRoleAsync(user, RoleNames.Customer);
+
+        if (!roleResult.Succeeded)
+            throw new BadRequestException(roleResult.Errors.FirstOrDefault()?.Description ?? "Failed to assign Customer role.");
+
+        return new RegisterResponse
+        {
+            Message = "Customer registered successfully.",
+            UserId = user.Id,
+            UserName = user.UserName!
+        };
+    }
 }
