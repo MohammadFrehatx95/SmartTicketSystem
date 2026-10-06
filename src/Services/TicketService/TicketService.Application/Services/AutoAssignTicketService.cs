@@ -1,4 +1,4 @@
-﻿using Shared.Application.Events;
+using Shared.Application.Events;
 using Shared.Application.Exceptions;
 using System.Text.Json;
 using TicketService.Application.DTOs.Ticket;
@@ -28,7 +28,7 @@ public class AutoAssignTicketService : IAutoAssignTicketService
         _unitOfWork = unitOfWork;
     }
 
-    private async Task<AssignTicketResponse> AssignBestAvailableAsync(long ticketId, AssignmentSource source, string? correlationId, CancellationToken cancellationToken = default)
+    private async Task<AssignTicketResponse> AssignBestAvailableAsync(long ticketId, AssignmentSource source, string? correlationId, bool recordFailureInDb = true, CancellationToken cancellationToken = default)
     {
         var ticket = await _ticketRepository.GetByIdAsNoTrackingAsync(ticketId);
 
@@ -42,19 +42,22 @@ public class AutoAssignTicketService : IAutoAssignTicketService
 
         if (agent is null)
         {
-            var failedAttempt = new AssignmentAttempt
+            if (recordFailureInDb)
             {
-                TicketId = ticketId,
-                AgentId = null,
-                AttemptStatus = AssignmentAttemptStatus.Failed,
-                AssignmentSource = source,
-                FailureReason = "No available agent found.",
-                CreatedAt = DateTime.UtcNow,
-                CompletedAt = DateTime.UtcNow
-            };
+                var failedAttempt = new AssignmentAttempt
+                {
+                    TicketId = ticketId,
+                    AgentId = null,
+                    AttemptStatus = AssignmentAttemptStatus.Failed,
+                    AssignmentSource = source,
+                    FailureReason = "No available agent found.",
+                    CreatedAt = DateTime.UtcNow,
+                    CompletedAt = DateTime.UtcNow
+                };
 
-            await _attemptRepository.AddAsync(failedAttempt);
-            await _unitOfWork.SaveChangesAsync(cancellationToken);
+                await _attemptRepository.AddAsync(failedAttempt);
+                await _unitOfWork.SaveChangesAsync(cancellationToken);
+            }
 
             if (source == AssignmentSource.RetryWorker)
                 throw new RetryAssignmentFailedException("No available agent found.", null);
@@ -135,19 +138,22 @@ public class AutoAssignTicketService : IAutoAssignTicketService
             await _unitOfWork.RollbackTransactionAsync(CancellationToken.None);
             _unitOfWork.ClearTracking();
 
-            var failedAttempt = new AssignmentAttempt
+            if (recordFailureInDb)
             {
-                TicketId = ticketId,
-                AgentId = agent.Id,
-                AttemptStatus = AssignmentAttemptStatus.Failed,
-                AssignmentSource = source,
-                FailureReason = "Ticket assignment failed during processing.",
-                CreatedAt = DateTime.UtcNow,
-                CompletedAt = DateTime.UtcNow
-            };
+                var failedAttempt = new AssignmentAttempt
+                {
+                    TicketId = ticketId,
+                    AgentId = agent.Id,
+                    AttemptStatus = AssignmentAttemptStatus.Failed,
+                    AssignmentSource = source,
+                    FailureReason = "Ticket assignment failed during processing.",
+                    CreatedAt = DateTime.UtcNow,
+                    CompletedAt = DateTime.UtcNow
+                };
 
-            await _attemptRepository.AddAsync(failedAttempt);
-            await _unitOfWork.SaveChangesAsync(CancellationToken.None);
+                await _attemptRepository.AddAsync(failedAttempt);
+                await _unitOfWork.SaveChangesAsync(CancellationToken.None);
+            }
 
             throw;
         }
@@ -155,12 +161,29 @@ public class AutoAssignTicketService : IAutoAssignTicketService
 
     public Task<AssignTicketResponse> AutoAssignAsync(long ticketId, string? correlationId, CancellationToken cancellationToken = default)
     {
-        return AssignBestAvailableAsync(ticketId, AssignmentSource.AutoAssignment, correlationId, cancellationToken);
+        return AssignBestAvailableAsync(ticketId, AssignmentSource.AutoAssignment, correlationId, recordFailureInDb: true, cancellationToken);
     }
 
     public Task<AssignTicketResponse> RetryAssignAsync(long ticketId, CancellationToken cancellationToken = default)
     {
         var correlationId = Guid.NewGuid().ToString();
-        return AssignBestAvailableAsync(ticketId, AssignmentSource.RetryWorker, correlationId, cancellationToken);
+        return AssignBestAvailableAsync(ticketId, AssignmentSource.RetryWorker, correlationId, recordFailureInDb: false, cancellationToken);
+    }
+
+    public async Task RecordFailedAttemptAsync(long ticketId, long? agentId, string failureReason, CancellationToken cancellationToken = default)
+    {
+        var failedAttempt = new AssignmentAttempt
+        {
+            TicketId = ticketId,
+            AgentId = agentId,
+            AttemptStatus = AssignmentAttemptStatus.Failed,
+            AssignmentSource = AssignmentSource.RetryWorker,
+            FailureReason = failureReason,
+            CreatedAt = DateTime.UtcNow,
+            CompletedAt = DateTime.UtcNow
+        };
+
+        await _attemptRepository.AddAsync(failedAttempt);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
     }
 }

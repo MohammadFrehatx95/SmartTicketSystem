@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Quartz;
 using Shared.Application.Exceptions;
@@ -34,6 +34,10 @@ public class RetryAssignmentJob : IJob
 
         foreach (var ticket in tickets)
         {
+            var isAssigned = false;
+            string? lastFailureReason = null;
+            long? lastAgentId = null;
+
             for (var attemptNumber = 1; attemptNumber <= _options.MaxAttemptsPerRun; attemptNumber++)
             {
                 try
@@ -42,10 +46,14 @@ public class RetryAssignmentJob : IJob
 
                     _logger.LogInformation("Ticket {TicketId} was assigned to Agent {AgentId} successfully on attempt {AttemptNumber}/{MaxAttempts}.", result.TicketId, result.AssignedAgentId, attemptNumber, _options.MaxAttemptsPerRun);
 
+                    isAssigned = true;
                     break;
                 }
                 catch (RetryAssignmentFailedException ex)
                 {
+                    lastFailureReason = ex.Message;
+                    lastAgentId = ex.AgentId;
+
                     _logger.LogWarning("Ticket {TicketId} failed with Agent {AgentId} on attempt {AttemptNumber}/{MaxAttempts}. Reason: {Reason}", ticket.Id, ex.AgentId, attemptNumber, _options.MaxAttemptsPerRun, ex.Message);
 
                     if (ex.AgentId is null)
@@ -59,6 +67,7 @@ public class RetryAssignmentJob : IJob
                 }
                 catch (NotFoundException ex)
                 {
+                    lastFailureReason = ex.Message;
                     _logger.LogWarning("Ticket {TicketId} was not found. Retry stopped. Reason: {Reason}", ticket.Id, ex.Message);
                     break;
                 }
@@ -69,9 +78,11 @@ public class RetryAssignmentJob : IJob
                     if (currentTicket is null || currentTicket.Status != TicketStatus.New || currentTicket.AssignedAgentId is not null)
                     {
                         _logger.LogInformation("Ticket {TicketId} is no longer eligible for retry assignment.", ticket.Id);
+                        lastFailureReason = null;
                         break;
                     }
 
+                    lastFailureReason = ex.Message;
                     _logger.LogWarning("Ticket {TicketId} retry attempt {AttemptNumber}/{MaxAttempts} failed. Reason: {Reason}", ticket.Id, attemptNumber, _options.MaxAttemptsPerRun, ex.Message);
                 }
                 catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -80,9 +91,16 @@ public class RetryAssignmentJob : IJob
                 }
                 catch (Exception ex)
                 {
+                    lastFailureReason = ex.Message;
                     _logger.LogError(ex, "Unexpected error while retrying Ticket {TicketId}. Retry stopped for this ticket.", ticket.Id);
                     break;
                 }
+            }
+
+            if (!isAssigned && lastFailureReason is not null)
+            {
+                await _autoAssignTicketService.RecordFailedAttemptAsync(ticket.Id, lastAgentId, lastFailureReason, cancellationToken);
+                _logger.LogInformation("Single failed attempt recorded in database for Ticket {TicketId}.", ticket.Id);
             }
         }
 
