@@ -1,5 +1,6 @@
 using NotificationService.Infrastructure.Extensions;
 using NotificationService.Application.Extensions;
+using Shared.Infrastructure.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -26,6 +27,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+app.UseSharedMiddlewares();
 
 app.UseAuthorization();
 
