@@ -60,10 +60,6 @@ public class BatchAutoAssignService : IBatchAutoAssignService
                 {
                     response.InvalidStatus++;
                 }
-                else
-                {
-                    response.NoAgentAvailable++;
-                }
             }
         }
 

@@ -41,7 +41,7 @@ namespace TicketService.Infrastructure.Repositories
                                               .SetProperty(
                                                 a => a.CurrentOpenTickets, a => a.CurrentOpenTickets + 1)
                                               .SetProperty(
-                                                a => a.LastAssignedAt,assignedAt),
+                                                a => a.LastAssignedAt, assignedAt),
                                           cancellationToken);
         }
 

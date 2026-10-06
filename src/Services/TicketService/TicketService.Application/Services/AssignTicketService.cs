@@ -34,7 +34,7 @@ namespace TicketService.Application.Services
         public async Task<AssignTicketResponse> AssignAsync(long ticketId, AssignTicketRequest request, string idempotencyKey, string? correlationId, CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrWhiteSpace(idempotencyKey))
-                throw new BadRequestException("Idempotency-Key header is required.");
+                throw new BadRequestException("Idempotency-Key header is required."); // middleware
 
             var requestBody = JsonSerializer.Serialize(new { TicketId = ticketId, AgentId = request.AgentId });
 
@@ -48,6 +48,7 @@ namespace TicketService.Application.Services
                     throw new ConflictException("Idempotency-Key was already used with a different request.");
 
                 var cachedResponse = JsonSerializer.Deserialize<AssignTicketResponse>(existingRecord.ResponseBody);
+
                 if (cachedResponse is null)
                     throw new InvalidOperationException("Invalid cached idempotency response.");
 
@@ -64,6 +65,7 @@ namespace TicketService.Application.Services
                 throw new BadRequestException("Ticket must be in New status to be assigned.");
 
             var agent = await _agentRepository.GetByIdAsync(request.AgentId);
+
             if (agent is null)
                 throw new NotFoundException("Agent not found.");
 

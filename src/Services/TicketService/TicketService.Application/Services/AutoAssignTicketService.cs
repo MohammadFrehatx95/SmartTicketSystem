@@ -79,7 +79,7 @@ public class AutoAssignTicketService : IAutoAssignTicketService
             var workloadAffectedRows = await _agentRepository.TryIncreamentWorkloadAsync(agent.Id, assignedAt, cancellationToken);
 
             if (workloadAffectedRows == 0)
-                throw new ConflictException("Selected agent is no longer available.");
+                throw new NoAvailableAgentException("Selected agent is no longer available.");
 
             var attempt = new AssignmentAttempt
             {
@@ -148,9 +148,6 @@ public class AutoAssignTicketService : IAutoAssignTicketService
 
             await _attemptRepository.AddAsync(failedAttempt);
             await _unitOfWork.SaveChangesAsync(CancellationToken.None);
-
-            if (source == AssignmentSource.RetryWorker && ex is ConflictException)
-                throw new RetryAssignmentFailedException(ex.Message, agent.Id);
 
             throw;
         }

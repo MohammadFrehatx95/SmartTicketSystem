@@ -32,7 +32,7 @@ public class AuthController : ControllerBase
     {
         var result = await _identityService.RegisterAgentAsync(request, cancellationToken);
 
-        return Ok(result);
+        return Ok(result); // object data
     }
 
     [HttpPost("login")]

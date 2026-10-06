@@ -36,7 +36,7 @@ namespace TicketService.Api.Controllers
         }
 
         [Authorize(Roles = "Agent")]
-        [HttpPost]
+        [HttpPost("create-ticket")]
         public async Task<IActionResult> Create(CreateTicketRequest request, CancellationToken cancellationToken)
         {
             var result = await _createTicketService.CreateAsync(request, cancellationToken);
