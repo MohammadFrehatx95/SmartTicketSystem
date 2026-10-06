@@ -12,7 +12,7 @@
     <Project Path="src/Services/NotificationService/NotificationService.Infrastructure/NotificationService.Infrastructure.csproj" />
   </Folder>
   <Folder Name="/Shared/">
-    <Project Path="Shared.Contracts/Shared.Contracts.csproj" Id="009ce4cf-1561-43da-8b80-d3c8f47f2a64" />
+    <Project Path="src/Services/Shared/Shared.Contracts/Shared.Contracts.csproj" Id="009ce4cf-1561-43da-8b80-d3c8f47f2a64" />
     <Project Path="src/Services/Shared/Shared.Application/Shared.Application.csproj" />
     <Project Path="src/Services/Shared/Shared.Infrastructure/Shared.Infrastructure.csproj" />
   </Folder>
