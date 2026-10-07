@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using TicketService.Application.Interfaces.Repositories;
 using TicketService.Domain.Entities;
 using TicketService.Infrastructure.Data;
@@ -16,13 +16,15 @@ namespace TicketService.Infrastructure.Repositories
 
         public async Task<Agent?> GetByIdAsync(long agentId)
         {
-            return await _dbContext.Agents.FirstOrDefaultAsync(a => a.Id == agentId);
+            return await _dbContext.Agents
+                .Include(a => a.Department)
+                .FirstOrDefaultAsync(a => a.Id == agentId);
         }
 
         public async Task<Agent?> GetBestAvailableAgentAsync(string ticketCategory)
         {
             return await _dbContext.Agents.Where(a => a.IsActive && a.IsAvailable &&
-                                                 a.Department.Name == ticketCategory &&
+                                                 a.Department.Name.ToLower() == ticketCategory.ToLower() &&
                                                  a.CurrentOpenTickets < a.MaxOpenTickets)
                                            .OrderBy(a => a.CurrentOpenTickets)
                                            .ThenBy(a => a.LastAssignedAt)

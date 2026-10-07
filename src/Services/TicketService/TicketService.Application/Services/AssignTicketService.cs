@@ -1,4 +1,4 @@
-﻿using System.Security.Cryptography;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using Shared.Application.Events;
@@ -71,6 +71,9 @@ namespace TicketService.Application.Services
 
             if (!agent.IsActive)
                 throw new BadRequestException("Agent is not active.");
+
+            if (agent.Department is null || !string.Equals(agent.Department.Name, existingTicket.Category, StringComparison.OrdinalIgnoreCase))
+                throw new BadRequestException("Agent department does not match ticket category.");
 
             var assignedAt = DateTime.UtcNow;
             var newVersion = existingTicket.AssignmentVersion + 1;
